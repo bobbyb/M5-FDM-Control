@@ -1,7 +1,12 @@
-### M5 FDM Studio V0.1.0
+### M5 FDM Control V0.1.0
 
 First release of this fork. A native Apple Silicon (arm64) build of eufyMake Studio for
 AnkerMake M5 / M5C printers, based on upstream eufyMake Studio v1.5.26.
+
+M5 FDM Control is a slimmed-down fork of M5 FDM Studio v0.1.0. The feature set below is
+inherited from it unchanged; this fork only removes files the macOS arm64 build never uses
+and renames the app. It installs alongside M5 FDM Studio, but shares its data directory,
+so presets and login carry over.
 
 The stock release ships a closed-source, x86_64-only network plugin (`libAnkerNet.dylib`)
 that handles login, device discovery, telemetry, and printing. Because the app cannot

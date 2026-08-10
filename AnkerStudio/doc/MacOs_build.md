@@ -1,4 +1,4 @@
-# Building M5 FDM Studio on macOS
+# Building M5 FDM Control on macOS
 
 This fork builds for **Apple Silicon (arm64) only** — `gen_xcode_proj.sh` passes
 `-DCMAKE_OSX_ARCHITECTURES=arm64`. There is no Intel or universal build.

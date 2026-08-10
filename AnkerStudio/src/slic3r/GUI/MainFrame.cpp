@@ -125,7 +125,7 @@ public:
         if(wxGetApp().app_config->get("single_instance") == "0") {
             // Only allow opening a new AnkerStudio instance on OSX if "single_instance" is disabled, 
             // as starting new instances would interfere with the locking mechanism of "single_instance" support.
-            append_menu_item(menu, wxID_ANY, _L("Open new instance"), _L("Open a new M5 FDM Studio instance"),
+            append_menu_item(menu, wxID_ANY, _L("Open new instance"), _L("Open a new M5 FDM Control instance"),
             [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr);
         }
         append_menu_item(menu, wxID_ANY, _L("G-code preview") + dots, _L("Open G-code viewer"),
@@ -139,7 +139,7 @@ public:
     GCodeViewerTaskBarIcon(wxTaskBarIconType iconType = wxTBI_DEFAULT_TYPE) : wxTaskBarIcon(iconType) {}
     wxMenu *CreatePopupMenu() override {
         wxMenu *menu = new wxMenu;
-        append_menu_item(menu, wxID_ANY, _L("Open M5 FDM Studio"), _L("Open a new M5 FDM Studio instance"),
+        append_menu_item(menu, wxID_ANY, _L("Open M5 FDM Control"), _L("Open a new M5 FDM Control instance"),
             [](wxCommandEvent&) { start_new_slicer(nullptr, true); }, "", nullptr);
         append_menu_item(menu, wxID_ANY, _L("G-code preview") + dots, _L("Open new G-code viewer"),
             [](wxCommandEvent&) { start_new_gcodeviewer_open_file(); }, "", nullptr);
@@ -859,14 +859,14 @@ void MainFrame::initTabPanel() {
         }
 
         if (m_plater != nullptr) {
-            int saved_project = m_plater->save_project_if_dirty(_L("Closing M5 FDM Studio. Current project is modified."));
+            int saved_project = m_plater->save_project_if_dirty(_L("Closing M5 FDM Control. Current project is modified."));
             if (saved_project == wxID_CANCEL) {
                 event.Veto();
                 return;
             }
             // check unsaved changes only if project wasn't saved
             else if (plater()->is_project_dirty() && saved_project == wxID_NO && event.CanVeto() &&
-                (plater()->is_presets_dirty() && !wxGetApp().check_and_save_current_preset_changes(_L("M5 FDM Studio is closing"), _L("Closing M5 FDM Studio while some presets are modified.")))) {
+                (plater()->is_presets_dirty() && !wxGetApp().check_and_save_current_preset_changes(_L("M5 FDM Control is closing"), _L("Closing M5 FDM Control while some presets are modified.")))) {
                 event.Veto();
                 return;
             }
@@ -1644,9 +1644,9 @@ void MainFrame::update_title()
 
     std::string build_id;
 #ifdef JAPAN_OPEN
-    build_id = wxGetApp().is_editor() ? "M5 FDM Studio" : "M5 FDM Studio G-code Viewer";
+    build_id = wxGetApp().is_editor() ? "M5 FDM Control" : "M5 FDM Control G-code Viewer";
 #else
-    build_id = wxGetApp().is_editor() ? "M5 FDM Studio" : "M5 FDM Studio G-code Viewer";
+    build_id = wxGetApp().is_editor() ? "M5 FDM Control" : "M5 FDM Control G-code Viewer";
 #endif
 
     size_t 		idx_plus = build_id.find('+');
@@ -3900,7 +3900,7 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { m_printhost_queue_dlg->Show(); }, ""/*"upload_queue"*/, nullptr, []() {return true; }, this);
         
         windowMenu->AppendSeparator();
-        append_menu_item(windowMenu, wxID_ANY, _L("Open New Instance") + "\tCtrl+Shift+I", _L("Open a new M5 FDM Studios instance"),
+        append_menu_item(windowMenu, wxID_ANY, _L("Open New Instance") + "\tCtrl+Shift+I", _L("Open a new M5 FDM Controls instance"),
             [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr, [this]() {return m_plater != nullptr && !wxGetApp().app_config->get_bool("single_instance"); }, this);
 
         windowMenu->AppendSeparator();
@@ -4367,7 +4367,7 @@ void MainFrame::init_menubar_as_gcodeviewer()
         append_menu_item(fileMenu, wxID_ANY, _L("Export &Toolpaths as OBJ") + dots, _L("Export toolpaths as OBJ"),
             [this](wxCommandEvent&) { if (m_plater != nullptr) m_plater->export_toolpaths_to_obj(); }, "export_plater", nullptr,
             [this]() {return can_export_toolpaths(); }, this);
-        append_menu_item(fileMenu, wxID_ANY, _L("Open &M5 FDM Studio") + dots, _L("Open M5 FDM Studio"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Open &M5 FDM Control") + dots, _L("Open M5 FDM Control"),
             [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr,
             []() {return true; }, this);
         fileMenu->AppendSeparator();

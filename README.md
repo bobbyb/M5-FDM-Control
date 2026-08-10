@@ -1,4 +1,4 @@
-# M5 FDM Studio (Compact)
+# M5 FDM Control
 ![image](AnkerStudio/resources/icons/AnkerStudio.png)
 
 ## Overview
@@ -7,8 +7,8 @@ A slimmed-down fork of [M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaS
 the native Apple Silicon build of **eufyMake Studio** for AnkerMake M5 and M5C printers.
 
 Forked from `m5-fdm-studio-v0.1.0`. **No functional changes** — the slicing engine,
-profiles, GUI, and networking layers are byte-identical to the parent. The only difference
-is that files the macOS arm64 build never uses have been removed.
+profiles, GUI, and networking layers behave exactly as in the parent. The differences are
+that files the macOS arm64 build never uses have been removed, and the app is renamed.
 
 ### Why this fork exists
 
@@ -18,6 +18,17 @@ Two reasons, in order:
    been touched yet.
 2. **It is much smaller.** The parent carries Intel dylibs, Windows runtime DLLs, unused
    font faces, and gettext `.po` sources — none of which reach a macOS arm64 build.
+
+### Relationship to M5 FDM Studio
+
+M5 FDM Control installs alongside its parent rather than over it: it has its own app name
+and its own bundle identifier (`com.bobbyb.m5-fdm-control`).
+
+It deliberately **shares the parent's data directory**. `SLIC3R_APP_KEY` is still
+`eufyMake Studio`, so presets, configuration, and the login cache carry over from an
+existing eufyMake Studio or M5 FDM Studio install. That key is also the name of the
+translation catalogs (`eufyMake Studio.mo`), so changing it would orphan settings *and*
+silently disable every translation.
 
 ### What was removed
 
@@ -52,18 +63,19 @@ git --git-dir=../eufyMake-PrusaSlicer-Release-ARM/.git \
     > AnkerStudio/resources/fonts/NotoSansCJK-Regular.ttc
 ```
 
-## Before the first release
+## Known wrinkles
 
-- [ ] **`APP_NAME` / `BUNDLE_ID` in `AnkerStudio/make_app.sh` are unchanged from the
-      parent** (`M5 FDM Studio`, `com.bobbyb.m5-fdm-studio`). Both forks therefore install
-      to the same `/Applications/M5 FDM Studio.app`. Change them before shipping this
-      alongside the parent.
-- [ ] `.gitignore` is inherited verbatim and contains `*.txt` and `*.ttf`, which match
-      every `CMakeLists.txt` and every bundled font. They are tracked here because the
-      initial commit force-added them; a plain `git add` will **not** pick up a new
-      `CMakeLists.txt`. Use `git add -f`, or narrow those patterns.
+- `.gitignore` is inherited verbatim and contains `*.txt` and `*.ttf`, which match every
+  `CMakeLists.txt` and every bundled font. They are tracked here because the initial commit
+  force-added them; a plain `git add` will **not** pick up a new `CMakeLists.txt`. Use
+  `git add -f`, or narrow those patterns.
+- Renaming the app changed the msgid of every user-facing string containing the app name,
+  so those specific strings now fall back to English in translated builds. This is
+  inherited, not new — the parent already broke the same strings when it renamed away from
+  `eufyMake Studio`. Regenerating the catalogs would fix it, and needs the `.po` sources
+  from the parent repo.
 
-## What are M5 FDM Studio's main features?
+## Features
 
 - **Runs on macOS 27**, which drops Intel app support — fully native arm64, no Rosetta;
 - Basic slicing features & GCode viewer;
@@ -95,8 +107,8 @@ community.
 
 ## License
 
-M5 FDM Studio is licensed under the GNU Affero General Public License, version 3. M5 FDM
-Studio is based on eufyMake Studio, which is based on PrusaSlicer by PrusaResearch.
+M5 FDM Control is licensed under the GNU Affero General Public License, version 3. It is
+based on eufyMake Studio, which is based on PrusaSlicer by PrusaResearch.
 
 PrusaSlicer is licensed under the GNU Affero General Public License, version 3. PrusaSlicer is owned by Prusa Research. PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci.
 

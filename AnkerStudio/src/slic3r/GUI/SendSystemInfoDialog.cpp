@@ -597,7 +597,7 @@ SendSystemInfoDialog::SendSystemInfoDialog(wxWindow* parent)
            "to identify you later. To detect duplicate entries, a unique number derived "
            "from your system is sent, but the source information cannot be reconstructed. "
            "Apart from that, only general data about your OS, hardware and OpenGL "
-           "installation are sent. M5 FDM Studio is open source, if you want to "
+           "installation are sent. M5 FDM Control is open source, if you want to "
            "inspect the code actually performing the communication, see %1%."),
            std::string("<i>") + filename + "</i>");
 

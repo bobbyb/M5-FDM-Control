@@ -133,10 +133,10 @@ int GUI_Run(GUI_InitParams &params)
 
     } catch (const Slic3r::Exception &ex) {
         boost::nowide::cerr << ex.what() << std::endl;
-        wxMessageBox(boost::nowide::widen(ex.what()), _L("M5 FDM Studio GUI initialization failed"), wxICON_STOP);
+        wxMessageBox(boost::nowide::widen(ex.what()), _L("M5 FDM Control GUI initialization failed"), wxICON_STOP);
     } catch (const std::exception &ex) {
-        boost::nowide::cerr << "M5 FDM Studio GUI initialization failed: " << ex.what() << std::endl;
-        wxMessageBox(format_wxstr(_L("Fatal error, exception catched: %1%"), ex.what()), _L("M5 FDM Studio GUI initialization failed"), wxICON_STOP);
+        boost::nowide::cerr << "M5 FDM Control GUI initialization failed: " << ex.what() << std::endl;
+        wxMessageBox(format_wxstr(_L("Fatal error, exception catched: %1%"), ex.what()), _L("M5 FDM Control GUI initialization failed"), wxICON_STOP);
     }
 
     // error

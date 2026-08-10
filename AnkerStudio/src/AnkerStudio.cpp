@@ -908,14 +908,14 @@ bool CLI::setup(int argc, char **argv)
     // We hope that if a DLL is being injected into a AnkerStudio process, it happens at the very start of the application,
     // thus we shall detect them now.
     if (BlacklistedLibraryCheck::get_instance().perform_check()) {
-        std::wstring text = L"Following DLLs have been injected into the M5 FDM Studio process:\n\n";
+        std::wstring text = L"Following DLLs have been injected into the M5 FDM Control process:\n\n";
         text += BlacklistedLibraryCheck::get_instance().get_blacklisted_string();
         text += L"\n\n"
-                L"M5 FDM Studio is known to not run correctly with these DLLs injected. "
+                L"M5 FDM Control is known to not run correctly with these DLLs injected. "
                 L"We suggest stopping or uninstalling these services if you experience "
-                L"crashes or unexpected behaviour while using M5 FDM Studio.\n"
-                L"For example, ASUS Sonic Studio injects a Nahimic driver, which makes M5 FDM Studio "
-                L"to crash on a secondary monitor, see M5 FDM Studio github issue #5573";
+                L"crashes or unexpected behaviour while using M5 FDM Control.\n"
+                L"For example, ASUS Sonic Studio injects a Nahimic driver, which makes M5 FDM Control "
+                L"to crash on a secondary monitor, see M5 FDM Control github issue #5573";
         MessageBoxW(NULL, text.c_str(), L"Warning"/*L"Incopatible library found"*/, MB_OK);
     }
 #endif
@@ -1004,7 +1004,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
 #endif /* SLIC3R_GUI */
         << std::endl
         << "https://github.com/prusa/AnkerStudio" << std::endl << std::endl
-        << "Usage: M5 FDM Studio [ ACTIONS ] [ TRANSFORM ] [ OPTIONS ] [ file.stl ... ]" << std::endl
+        << "Usage: M5 FDM Control [ ACTIONS ] [ TRANSFORM ] [ OPTIONS ] [ file.stl ... ]" << std::endl
         << std::endl
         << "Actions:" << std::endl;
     cli_actions_config_def.print_cli_help(boost::nowide::cout, false);

@@ -71,11 +71,11 @@ struct CurlGlobalInit
 
             if (!bundle)
                 message = _u8L("Could not detect system SSL certificate store. "
-                               "M5 FDM Studio will be unable to establish secure "
+                               "M5 FDM Control will be unable to establish secure "
                                "network connections.");
             else
                 message = Slic3r::GUI::format(
-					_L("M5 FDM Studio detected system SSL certificate store in: %1%"),
+					_L("M5 FDM Control detected system SSL certificate store in: %1%"),
                     bundle);
 
             message += "\n" + Slic3r::GUI::format(
@@ -88,7 +88,7 @@ struct CurlGlobalInit
 #endif // OPENSSL_CERT_OVERRIDE
 
         if (CURLcode ec = ::curl_global_init(CURL_GLOBAL_DEFAULT)) {
-            message += _u8L("CURL init has failed. M5 FDM Studio will be unable to establish "
+            message += _u8L("CURL init has failed. M5 FDM Control will be unable to establish "
                             "network connections. See logs for additional details.");
 
             BOOST_LOG_TRIVIAL(error) << ::curl_easy_strerror(ec);

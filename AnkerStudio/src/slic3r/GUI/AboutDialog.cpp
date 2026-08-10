@@ -242,7 +242,7 @@ AboutDialog::AboutDialog()
     // full product name (subtitle under the short title)
     if (wxGetApp().is_editor()) {
         wxStaticText* subtitle = new wxStaticText(this, wxID_ANY,
-            "M5 FDM Studio for AnkerMake M5 M5C printers", wxDefaultPosition, wxDefaultSize);
+            "M5 FDM Control for AnkerMake M5 M5C printers", wxDefaultPosition, wxDefaultSize);
         wxFont subtitle_font = GetFont();
         subtitle_font.SetPointSize(11);
         subtitle->SetFont(subtitle_font);
@@ -280,7 +280,7 @@ AboutDialog::AboutDialog()
         // TRN AboutDialog: "Slic3r %1% GNU Affero General Public License"
         const wxString is_lecensed_str  = _L("is licensed under the");
         const wxString license_str      = _L("GNU Affero General Public License, version 3");
-        const wxString based_on_str     = _L("M5 FDM Studio is Based on PrusaSlicer by Alessandro Ranellucci and the RepRap community.");
+        const wxString based_on_str     = _L("M5 FDM Control is Based on PrusaSlicer by Alessandro Ranellucci and the RepRap community.");
         const wxString contributors_str = _L("Contributions by Henrik Brix Andersen, Nicolas Dandrimont, Mark Hindess, Petr Ledvina, Joseph Lenox, Y. Sapir, Mike Sheldrake, Vojtech Bubnik and numerous others.");
         const auto text = format_wxstr(
             "<html>"

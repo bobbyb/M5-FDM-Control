@@ -957,7 +957,7 @@ ConfigSubstitutions ConfigBase::load_from_gcode_file(const std::string &file, Fo
             }
         }
         if (! header_found)
-            throw Slic3r::RuntimeError("Not a M5 FDM Studio / Slic3r PE generated g-code.");
+            throw Slic3r::RuntimeError("Not a M5 FDM Control / Slic3r PE generated g-code.");
     }
 
     auto                      header_end_pos = ifs.tellg();

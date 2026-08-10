@@ -126,7 +126,7 @@ LONG ExceptionCrashHandler(EXCEPTION_POINTERS* pException) {
     SYSTEMTIME st;
     ::GetLocalTime(&st);
     WCHAR fileName[50] = L"\0";
-    wsprintfW(fileName, L"\\M5 FDM Studio_%d%02d%2d%_%02d%02d%02d.dmp", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+    wsprintfW(fileName, L"\\M5 FDM Control_%d%02d%2d%_%02d%02d%02d.dmp", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
     std::wstring wsDmpFile = wsDmpDir + fileName;
     printf("wsDmpDir:%S\n", wsDmpFile.c_str()); 
     CreateDumpFile(wsDmpFile.c_str(), pException);
@@ -537,8 +537,8 @@ int wmain(int argc, wchar_t **argv)
     if (load_mesa) {
         bool res = opengl_version_check.unload_opengl_dll();
         if (!res) {
-            MessageBox(nullptr, L"M5 FDM Studio was unable to automatically switch to MESA OpenGL library\nPlease, try to run the application using the '--sw-renderer' option.\n",
-                L"M5 FDM Studio Warning", MB_OK);
+            MessageBox(nullptr, L"M5 FDM Control was unable to automatically switch to MESA OpenGL library\nPlease, try to run the application using the '--sw-renderer' option.\n",
+                L"M5 FDM Control Warning", MB_OK);
             return -1;
         }
         else {

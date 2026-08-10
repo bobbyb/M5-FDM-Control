@@ -20,9 +20,9 @@
 set -euo pipefail
 
 # ============================ EDIT THESE ============================
-APP_NAME="M5 FDM Studio"
-FULL_NAME="M5 FDM Studio for AnkerMake M5 M5C printers"   # descriptive/marketing name
-BUNDLE_ID="com.bobbyb.m5-fdm-studio"               # must NOT be com.anker.*
+APP_NAME="M5 FDM Control"
+FULL_NAME="M5 FDM Control for AnkerMake M5 M5C printers"   # descriptive/marketing name
+BUNDLE_ID="com.bobbyb.m5-fdm-control"               # must NOT be com.anker.*
 VERSION="0.1.0"
 
 # Your "Developer ID Application" identity, e.g.:
