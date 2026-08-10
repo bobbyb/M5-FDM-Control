@@ -2,8 +2,7 @@
 #include <cstdio>
 #include <codecvt>
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "libslic3r/GCode/Thumbnails.hpp"
+#include "GcodeInfoScanner.hpp"
 #include <slic3r/Utils/JsonHelp.hpp>
 #include <slic3r/GUI/Plater.hpp>
 
@@ -271,10 +270,9 @@ void GcodeInfo::ParseIdMap(const std::string& input, std::vector<CardInfo>& conV
 
 void GcodeInfo::ParseGcodeInfoToViewModel(const std::string& strGcodeFilePath, GUI::AnkerMaterialMappingViewModel* pViewModel)
 {
-	GCodeProcessor processor;
-	GCodeProcessorResultExt out;
+	GcodePrintInfo out;
 	// we still open the file which filepath may contains special characters
-	processor.process_file_ext(strGcodeFilePath, out);
+	GcodeInfoScanner::Scan(strGcodeFilePath, out);
 
 	// get the print info from gcode
 	// set the info to dialog
@@ -302,7 +300,7 @@ void GcodeInfo::ParseGcodeInfoToViewModel(const std::string& strGcodeFilePath, G
 	wxImage image;
 	if (!out.base64_str.empty())
 	{
-		image = GCodeThumbnails::base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
+		image = GcodeInfoScanner::Base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
 	}
 
 	if (!image.IsOk())

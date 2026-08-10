@@ -4,8 +4,7 @@
 #include "GUI_App.hpp"
 
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "libslic3r/GCode/Thumbnails.hpp"
+#include "slic3r/Utils/GcodeInfoScanner.hpp"
 #include "slic3r/GUI/Common/AnkerGUIConfig.hpp"
 #include "slic3r/GUI/Common/AnkerMsgDialog.hpp"
 #include "slic3r/GUI/Common/AnkerLoadingMask.hpp"
@@ -1621,10 +1620,9 @@ void AnkerGCodeImportDialog::OnComputerImportBtn(wxCommandEvent& event)
 	{
 		m_pMaterialMappingViewModel->clear();
 		m_localImportDefaultDir = resultOriFilePath.substr(0, resultOriFilePath.find_last_of("\\")).ToStdString();
-		Slic3r::GCodeProcessor processor;
-		Slic3r::GCodeProcessorResultExt out;
+		Slic3r::GcodePrintInfo out;
 		// we still open the file which filepath may contains special characters
-		processor.process_file_ext(resultOriFilePath.ToUTF8().data(), out);
+		Slic3r::GcodeInfoScanner::Scan(resultOriFilePath.ToUTF8().data(), out);
 
 		// get the print info from gcode
 		// set the info to dialog
@@ -1636,7 +1634,7 @@ void AnkerGCodeImportDialog::OnComputerImportBtn(wxCommandEvent& event)
 		wxImage image;
 		if (!out.base64_str.empty())
 		{
-			image = Slic3r::GCodeThumbnails::base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
+			image = Slic3r::GcodeInfoScanner::Base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
 		}
 
 		if (!image.IsOk())
@@ -1655,10 +1653,9 @@ void AnkerGCodeImportDialog::OnComputerImportBtn(wxCommandEvent& event)
 		switch2FileInfo(resultFilePath, std::string(resultOriFilePath.mb_str()));
 		m_localImportDefaultDir = resultOriFilePath.substr(0, resultOriFilePath.find_last_of("\\")).ToStdString();
 
-		Slic3r::GCodeProcessor processor;
-		Slic3r::GCodeProcessorResultExt out;
+		Slic3r::GcodePrintInfo out;
 		// we still open the file which filepath may contains special characters
-		processor.process_file_ext(resultOriFilePath.ToUTF8().data(), out);
+		Slic3r::GcodeInfoScanner::Scan(resultOriFilePath.ToUTF8().data(), out);
 
 		// get the print info from gcode
 		// set the info to dialog
@@ -1671,7 +1668,7 @@ void AnkerGCodeImportDialog::OnComputerImportBtn(wxCommandEvent& event)
 		wxImage image;
 		if (!out.base64_str.empty())
 		{
-			image = Slic3r::GCodeThumbnails::base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
+			image = Slic3r::GcodeInfoScanner::Base64ToImage<wxImage, wxMemoryInputStream>(out.base64_str);
 		}
 
 		if (!image.IsOk())

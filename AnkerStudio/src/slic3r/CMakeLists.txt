@@ -499,6 +499,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/FontConfigHelp.hpp
     Utils/GcodeInfo.cpp
     Utils/GcodeInfo.hpp
+    Utils/GcodeInfoScanner.cpp
+    Utils/GcodeInfoScanner.hpp
     Utils/AstroBox.cpp
     Utils/AstroBox.hpp
     Utils/Repetier.cpp
