@@ -4,7 +4,7 @@
 #include "libslic3r/Utils.hpp"
 #include "GcodeInfoScanner.hpp"
 #include <slic3r/Utils/JsonHelp.hpp>
-#include <slic3r/GUI/Plater.hpp>
+#include "AcodeArchive.hpp"
 
 
 namespace Slic3r {
@@ -317,7 +317,7 @@ std::vector<std::string> GcodeInfo::GetFilamentFromGCode(const wxString& utf8Gco
 	wxString gcodeFilePath = utf8GcodeFilePath;
 
 	if (utf8GcodeFilePath.EndsWith(".acode")) {
-		wxString aiGcodePath = Slic3r::GUI::Plater::extract_aiGcode_file_from_tar(utf8GcodeFilePath);
+		wxString aiGcodePath = Slic3r::AcodeArchive::extract_aigcode(utf8GcodeFilePath);
 		if (!aiGcodePath.empty()) {
 			gcodeFilePath = aiGcodePath;
 		}
