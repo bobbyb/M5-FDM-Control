@@ -941,12 +941,12 @@ void MainFrame::initTabPanel() {
     m_printTabPanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& event) {
         int iSelectedPage = event.GetId();
 
+        // Device is the only tab now, so it is page 0 (it used to be page 1, behind
+        // the plater). Slice is gone.
         if (iSelectedPage == 0) {
-            m_currentTabMode = TabMode::TAB_SLICE;
-            m_pMsgCentrePopWindow->Hide();
-
-        } else if (iSelectedPage == 1) {
             m_currentTabMode = TabMode::TAB_DEVICE;
+            if (m_pMsgCentrePopWindow)
+                m_pMsgCentrePopWindow->Hide();
             if (m_hasErrDialog)
             {
                 ShowErrDialogByCenter();
@@ -1414,15 +1414,11 @@ void MainFrame::update_layout()
     }
     case ESettingsLayout::Dlg:
     {
-        m_plater->Reparent(m_printTabPanel);
-//#ifdef _MSW_DARK_MODE
-//        m_plater->Layout();
-//        if (!wxGetApp().tabs_as_menu())
-//            dynamic_cast<Notebook*>(m_printTabPanel)->InsertPage(0, m_plater, _L("Plater"), std::string("plater"), true);
-//        else
-//#endif
-        m_printTabPanel->InsertPage(0, m_plater, _L("Plater"));
-        m_currentTabMode = TAB_SLICE;
+        // The Slice tab is gone: the plater is no longer a page of m_printTabPanel,
+        // which leaves Device as the only page, at index 0. The Plater object is
+        // still constructed and still reachable through wxGetApp().plater() -- a
+        // great deal of code dereferences it -- it is simply never shown.
+        m_currentTabMode = TAB_DEVICE;
         if(m_pMsgCentrePopWindow)
             m_pMsgCentrePopWindow->Hide();
         m_printTabPanel->SetSelection(0);
@@ -1433,7 +1429,9 @@ void MainFrame::update_layout()
         m_tabpanel->Reparent(&m_settings_dialog);
         m_settings_dialog.GetSizer()->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 2);
         m_tabpanel->Show();
-        m_plater->Show();
+        // Was m_plater->Show(). It is parented to the frame but in no sizer now, so
+        // showing it would paint a stray panel over the Device tab.
+        m_plater->Hide();
 
 #ifdef _MSW_DARK_MODE
         if (wxGetApp().tabs_as_menu())

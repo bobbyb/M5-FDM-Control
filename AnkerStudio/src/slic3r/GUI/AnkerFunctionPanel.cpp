@@ -133,10 +133,7 @@ namespace Slic3r {
 			m_pSizer = new wxBoxSizer(wxHORIZONTAL);
 			wxImage::AddHandler(new wxPNGHandler);
 			//load images
-			wxImage image(wxString::FromUTF8(Slic3r::var("image.png")), wxBITMAP_TYPE_PNG);
-			wxImage image_active(wxString::FromUTF8(Slic3r::var("image_active.png")), wxBITMAP_TYPE_PNG);
-			wxBitmap bitmap(image);
-			wxBitmap bitmap_actice(image_active);
+			// image.png / image_active.png were the Slice tab's icons; unused now.
 
 
 			//BlinkingBitmap* svgbitMap = nullptr;
@@ -167,21 +164,16 @@ namespace Slic3r {
 			wxBitmap devcieBitmap(devcieImage);
 			wxBitmap devcieBitmap_actice(devcieImage_active);
 
-			m_pSliceButton = new AnkerCombinButton(this, bitmap, _L("Slice")); 
-			m_pSliceButton->SetMinSize(AnkerSize(160, 35));
-			m_pSliceButton->SetActieBitMap(bitmap_actice);
-			m_pSizer->Add(m_pSliceButton, 0, wxALL, 1);			
-
+			// The Slice tab is gone: this fork does not slice. Device is the only tab,
+			// so it sits at index 0 -- the index is the page index in m_pPrintTab.
 			m_pPrintButton = new AnkerCombinButton(this, devcieBitmap, _L("Device"));
 			m_pPrintButton->SetMinSize(AnkerSize(160, 35));
 			m_pPrintButton->SetActieBitMap(devcieBitmap_actice);
 			m_pSizer->Add(m_pPrintButton, 0, wxALL, 1);
 			m_pSizer->AddStretchSpacer();
 
-			m_pTabBtnVec.push_back(m_pSliceButton);
 			m_pTabBtnVec.push_back(m_pPrintButton);
 
-			//set Device button default selected (startup view defaults to Device)
 			m_pPrintButton->SetSelected(true);
 
 			wxImage noMsgImg = wxImage(wxString::FromUTF8(Slic3r::var("noNewsMsg.png")), wxBITMAP_TYPE_PNG);

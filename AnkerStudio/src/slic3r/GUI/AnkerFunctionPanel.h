@@ -17,10 +17,11 @@ wxDECLARE_EVENT(wxCUSTOMEVT_RELEASE_NOTE, wxCommandEvent);
 namespace Slic3r {
 	namespace GUI {
 
+		// Index into AnkerFunctionPanel::m_pTabBtnVec, and the page index in
+		// m_printTabPanel. Device moved to 0 when the Slice tab was removed.
 		enum tabPanleType
 		{
-			type_slice = 0, 
-			type_devcie,
+			type_devcie = 0,
 			type_others
 		};
 
@@ -74,7 +75,6 @@ namespace Slic3r {
 		private:
 			AnkerCombinButton* m_pHomeButton{ nullptr };
 			AnkerCombinButton* m_pLoginButton{ nullptr };
-			AnkerCombinButton* m_pSliceButton{ nullptr };
 			AnkerCombinButton* m_pPrintButton{ nullptr };
 			wxBoxSizer* m_pSizer{nullptr};
 			wxBookCtrlBase* m_pPrintTab{nullptr};
