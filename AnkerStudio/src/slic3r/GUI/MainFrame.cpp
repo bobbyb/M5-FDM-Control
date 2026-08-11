@@ -3365,77 +3365,6 @@ static void OnShareBuryPointButtonClick(AnkerToggleBtn* shareBuryPointButton, in
 
 }
 
-static void CreateUserExperienceDialog() 
-{
-    wxPoint mfPoint = wxGetApp().mainframe->GetPosition();
-    wxSize mfSize = wxGetApp().mainframe->GetClientSize();
-    wxSize dialogSize = AnkerSize(400, 313);
-    wxPoint center = wxPoint(mfPoint.x + mfSize.GetWidth() / 2 - dialogSize.GetWidth() / 2, mfPoint.y + mfSize.GetHeight() / 2 - dialogSize.GetHeight() / 2);
-    wxString title = _AnkerL("user_experience_program");
-    AnkerDialog dialog(nullptr, wxID_ANY, title, "", center, dialogSize);
-
-    wxPanel* contentPanel = new wxPanel(&dialog);
-    wxBoxSizer* contenSizer = new wxBoxSizer(wxVERTICAL);
-    contentPanel->SetSizer(contenSizer);
-    contenSizer->AddSpacer(AnkerLength(42));
-    wxBoxSizer* shareBuryPointSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticText* shareBuryPointLabel = new wxStaticText(contentPanel, wxID_ANY, _L("share_analytics"));
-    shareBuryPointLabel->SetForegroundColour(wxColour("#ffffff"));
-    shareBuryPointLabel->SetFont(AnkerFontSingleton::getInstance().Font_Head_14);
-
-    AnkerToggleBtn* shareBuryPointButton = new AnkerToggleBtn(contentPanel);
-    shareBuryPointButton->SetMinSize(AnkerSize(51, 27));
-    shareBuryPointButton->SetMaxSize(AnkerSize(51, 27));
-    shareBuryPointButton->SetSize(AnkerSize(51, 27));
-    shareBuryPointButton->SetBackgroundColour(wxColour("#333438"));
-    shareBuryPointButton->SetStateColours(true, wxColour(129, 220, 129), wxColour(250, 250, 250));
-    shareBuryPointButton->SetStateColours(false, wxColour(83, 83, 83), wxColour(219, 219, 219));
-
-    QueryDataShared(shareBuryPointButton);
-    shareBuryPointButton->Bind(wxCUSTOMEVT_ANKER_BTN_CLICKED, [shareBuryPointButton, contentPanel](wxCommandEvent& event) {
-        auto futureResult = std::async(std::launch::async, [shareBuryPointButton]() {
-            return PreHandleUpdateDataShared(shareBuryPointButton);
-        });
-        if (futureResult.wait_for(std::chrono::seconds(3)) == std::future_status::ready) {
-            auto [code, sn] = futureResult.get();
-            ANKER_LOG_INFO << "code is "<<code<<", sn  is" << sn;
-            OnShareBuryPointButtonClick(shareBuryPointButton, code, sn);
-        } else {
-            ANKER_LOG_INFO << "PreHandleUpdate handle timeout!";
-            OnShareBuryPointButtonClick(shareBuryPointButton, -1, "");
-        }
-        
-        contentPanel->Layout();
-        });
-    shareBuryPointSizer->AddSpacer(AnkerLength(42));
-    shareBuryPointSizer->Add(shareBuryPointLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 0);
-    shareBuryPointSizer->AddStretchSpacer();
-    shareBuryPointSizer->Add(shareBuryPointButton, 0, wxALL | wxALIGN_CENTER_VERTICAL, 0);
-    shareBuryPointSizer->AddSpacer(AnkerLength(42));
-    contenSizer->Add(shareBuryPointSizer, 0, wxALL | wxEXPAND, 0);
-    contenSizer->AddSpacer(AnkerLength(12));
-
-    MultipleLinesStaticText* contentText = new MultipleLinesStaticText(contentPanel);
-    contentText->SetControlSize(AnkerSize(360, 160));
-    contentText->SetControlColour(wxColour("#A8A8A8"), wxColour("#333438"));
-    contentText->SetTextFont(Body_13);
-    wxString contentString = _L("share_analytics_description") + _L("share_analytics_ensure");
-    contentText->WriteText(contentString);
-    wxString url = wxString(Slic3r::UrlConfig::PrivacyNoticeEn);
-    if (MainFrame::currentSoftwareLanguageIsJapanese()) {
-        url = wxString(Slic3r::UrlConfig::PrivacyNoticeJa);
-    }
-
-    wxURI uri(url);
-    url = uri.BuildURI();
-    std::string stdUrl = url.ToStdString();
-    contentText->ChangeTextToLink(_L("privacy_notice"), stdUrl, wxColour("#62D361"), false);
-
-    contenSizer->Add(contentText, 0, wxLEFT | wxRIGHT | wxEXPAND, AnkerLength(42));
-    dialog.SetCustomContent(contentPanel);
-    int result = dialog.ShowAnkerModal(AnkerDialogType_CustomContent);
-    ANKER_LOG_INFO << "result: " << result;
-}
 
 static wxMenu* generate_help_menu()
 {
@@ -3518,10 +3447,6 @@ static wxMenu* generate_help_menu()
             }
             
             });
-    append_menu_item(helpMenu, wxID_ANY, _L("common_tab_documentation_entrance"), _L("common_tab_documentation_entrance"),
-        [](wxCommandEvent&) {
-            wxLaunchDefaultBrowser(Slic3r::UrlConfig::StudioGuideUrl.c_str());
-        });
     append_menu_item(helpMenu, wxID_ANY, _L("common_menu_help_copyright"), _L("Show copyright information"),
         [](wxCommandEvent&) {
             wxPoint mfPoint = wxGetApp().mainframe->GetPosition();
@@ -3532,35 +3457,10 @@ static wxMenu* generate_help_menu()
             AnkerCopyrightDialog dialog(nullptr, wxID_ANY, title, "", center, dialogSize);
             dialog.ShowAnkerModal();
         });
-        append_menu_item(helpMenu, wxID_ANY, _L("user_experience_program"), _L("user_experience_program"),
-        [](wxCommandEvent&) {
-            CreateUserExperienceDialog();
-        });
 
     return helpMenu;
 }
 
-static void add_common_view_menu_items(wxMenu* view_menu, MainFrame* mainFrame, std::function<bool(void)> can_change_view)
-{
-    // The camera control accelerators are captured by GLCanvas3D::on_char().
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_iso") + sep + "&0", _L("Iso View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("iso"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    //view_menu->AppendSeparator();
-    //TRN Main menu: View->Top 
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_top") + sep + "&1", _L("Top View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("top"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    //TRN Main menu: View->Bottom 
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_bottom") + sep + "&2", _L("Bottom View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("bottom"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_front") + sep + "&3", _L("Front View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("front"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_rear") + sep + "&4", _L("Rear View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("rear"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_left") + sep + "&5", _L("Left View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("left"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L("common_menu_view_right") + sep + "&6", _L("Right View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("right"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-}
 
 void MainFrame::init_menubar_as_editor()
 {
@@ -3568,7 +3468,6 @@ void MainFrame::init_menubar_as_editor()
     wxMenuBar::SetAutoWindowMenu(false);
 #endif
 
-    // File menu
     // File menu. Everything it used to hold -- new/open/save project, import
     // STL/SLA/ZIP, import config, export G-code/STL/AMF -- was slicing. The one
     // file operation this fork has is picking an already-sliced G-code to print,
