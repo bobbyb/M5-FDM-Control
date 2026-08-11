@@ -1801,7 +1801,7 @@ namespace Slic3r {
             this->MSWUpdateDragImageOnLeave();
 #endif // WIN32
             m_mainframe.Raise();
-            m_mainframe.select_tab(size_t(0));
+            // select_tab() removed with the preset tabs; Plater itself goes next.
             
             if (wxGetApp().is_editor())
                 m_plater.select_view_3D(VIEW_MODE_3D);
@@ -1996,7 +1996,7 @@ namespace Slic3r {
                             res = (act == "1") ? wxID_YES : wxID_NO;
 
                         if (res == wxID_YES)
-                            if (!mainframe->save_project_as(project_name)) {
+                            if (false) { // save_project_as() removed with the plater UI
                                 // Return Cancel only, when we don't remember a choice for closing the application.
                                 // Elsewhere it can causes an impossibility to close the application at all.
                                 res = act.empty() ? wxID_CANCEL : wxID_NO;
@@ -6905,7 +6905,7 @@ namespace Slic3r {
         {
             if (!this->new_project())
                 return;
-            wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+            // select_tab() removed with the preset tabs; Plater itself goes next.
             switch (params.mode) {
             case CalibMode::Calib_PA_Line: {
                 Plater::TakeSnapshot snapshot(wxGetApp().plater(), _L("Load Model"));

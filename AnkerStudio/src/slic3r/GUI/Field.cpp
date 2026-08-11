@@ -143,7 +143,7 @@ void Field::PostInitialize()
 			    default: break;
 			    }
 			    if (tab_id >= 0)
-					wxGetApp().mainframe->select_tab(tab_id);
+					; // select_tab() removed with the preset tabs
 				if (tab_id > 0)
 					// tab panel should be focused for correct navigation between tabs
 				    wxGetApp().tab_panel()->SetFocus();

@@ -968,7 +968,7 @@ void AnkerParameterPanel::initUi()
 			if (int page_id = Slic3r::GUI::wxGetApp().tab_panel()->FindPage(tab); page_id != wxNOT_FOUND)
 			{
 				Slic3r::GUI::wxGetApp().tab_panel()->SetSelection(page_id);
-				Slic3r::GUI::wxGetApp().mainframe->select_tab();
+				; // select_tab() removed with the preset tabs
 			}
 #endif
 
@@ -979,7 +979,7 @@ void AnkerParameterPanel::initUi()
 			if (int page_id = Slic3r::GUI::wxGetApp().ankerTabPanel()->FindPage(ankerTab); page_id != wxNOT_FOUND)
 			{
 				Slic3r::GUI::wxGetApp().ankerTabPanel()->SetSelection(page_id);
-				Slic3r::GUI::wxGetApp().mainframe->selectAnkerTab(ankerTab);
+				; // selectAnkerTab() removed with the preset tabs
 				Slic3r::GUI::wxGetApp().mainframe->showAnkerCfgDlg();
 			}
 			});

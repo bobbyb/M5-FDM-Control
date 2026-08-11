@@ -972,7 +972,7 @@ void MainFrame::initTabPanel() {
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
 
-    update_ui_from_settings();    // FIXME (?)
+    // update_ui_from_settings() removed with the plater/preset UI
 
     if (m_plater != nullptr) {
         m_plater->get_collapse_toolbar().set_enabled(wxGetApp().app_config->get_bool("show_collapse_button"));
@@ -983,7 +983,7 @@ void MainFrame::initTabPanel() {
 
     // bind events from DiffDlg
 
-    bind_diff_dialog();
+    // bind_diff_dialog() removed with the preset tabs
 }
 
 void MainFrame::setUserInfoForSentry()
@@ -1023,80 +1023,7 @@ void MainFrame::OnScriptMessage(wxCommandEvent& evt)
     //on rec web request
 }
 
-void MainFrame::bind_diff_dialog()
-{
-    auto get_tab = [](Preset::Type type) {
-        Tab* null_tab = nullptr;
-        for (Tab* tab : wxGetApp().tabs_list)
-            if (tab->type() == type)
-                return tab;
-        return null_tab;
-    };
 
-    auto transfer = [this, get_tab](Preset::Type type) {
-        get_tab(type)->transfer_options(diff_dialog.get_left_preset_name(type),
-                                        diff_dialog.get_right_preset_name(type),
-                                        diff_dialog.get_selected_options(type));
-    };
-
-    auto update_presets = [this, get_tab](Preset::Type type) {
-        get_tab(type)->update_preset_choice();
-        //m_plater->sidebar().update_presets(type);
-        m_plater->sidebarnew().updatePresets(type);
-    };
-
-    auto process_options = [this](std::function<void(Preset::Type)> process) {
-        const Preset::Type diff_dlg_type = diff_dialog.view_type();
-        if (diff_dlg_type == Preset::TYPE_INVALID) {
-            for (const Preset::Type& type : diff_dialog.types_list() )
-                process(type);
-        }
-        else
-            process(diff_dlg_type);
-    };
-
-    diff_dialog.Bind(EVT_DIFF_DIALOG_TRANSFER,      [process_options, transfer](SimpleEvent&)         { process_options(transfer); });
-
-    diff_dialog.Bind(EVT_DIFF_DIALOG_UPDATE_PRESETS,[process_options, update_presets](SimpleEvent&)   { process_options(update_presets); });
-
-    // add by allen for ankerCfgDlg
-    bind_diff_dialog_ankertab();
-}
-
-void MainFrame::bind_diff_dialog_ankertab()
-{
-    auto transfer = [this](Preset::Type type) {
-        AnkerTab* ankerTab = wxGetApp().getAnkerTab(type);
-        if (ankerTab) {
-            ankerTab->transfer_options(diff_dialog.get_left_preset_name(type),
-                diff_dialog.get_right_preset_name(type),
-                diff_dialog.get_selected_options(type));
-        }  
-    };
-
-    auto update_presets = [this](Preset::Type type) {
-        AnkerTab* ankerTab = wxGetApp().getAnkerTab(type);
-        if (ankerTab) {
-            wxGetApp().getAnkerTab(type)->update_preset_choice();
-           // m_plater->sidebar().update_presets(type);
-            m_plater->sidebarnew().updatePresets(type);
-        }
-    };
-
-    auto process_options = [this](std::function<void(Preset::Type)> process) {
-        const Preset::Type diff_dlg_type = diff_dialog.view_type();
-        if (diff_dlg_type == Preset::TYPE_INVALID) {
-            for (const Preset::Type& type : diff_dialog.types_list())
-                process(type);
-        }
-        else
-            process(diff_dlg_type);
-    };
-
-    diff_dialog.Bind(EVT_DIFF_DIALOG_TRANSFER, [process_options, transfer](SimpleEvent&) { process_options(transfer); });
-
-    diff_dialog.Bind(EVT_DIFF_DIALOG_UPDATE_PRESETS, [process_options, update_presets](SimpleEvent&) { process_options(update_presets); });
-}
 
 
 size_t MainFrame::onDownLoadFinishedCallBack(char* dest, size_t size, size_t nmemb, void* userp)
@@ -2697,20 +2624,6 @@ void MainFrame::create_preset_tabs()
 
 }
 
-void MainFrame::add_created_tab(Tab* panel,  const std::string& bmp_name /*= ""*/)
-{
-    panel->create_preset_tab();
-
-    const auto printer_tech = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
-
-    if (panel->supports_printer_technology(printer_tech))
-//#ifdef _MSW_DARK_MODE
-//        if (!wxGetApp().tabs_as_menu())
-//            dynamic_cast<Notebook*>(m_tabpanel)->AddPage(panel, panel->title(), bmp_name);
-//        else
-//#endif
-        m_tabpanel->AddPage(panel, panel->title());
-}
 
 bool MainFrame::is_active_and_shown_tab(Tab* tab)
 {
@@ -2750,13 +2663,6 @@ bool MainFrame::isActiveAndShownAnkerTab(AnkerTab* tab)
     return true;
 }
 
-bool MainFrame::can_start_new_project() const
-{
-    return m_plater && (!m_plater->get_project_filename(".3mf").IsEmpty() || 
-                        GetTitle().StartsWith('*')||
-                        wxGetApp().has_current_preset_changes() || 
-                        !m_plater->model().objects.empty() );
-}
 
 bool MainFrame::can_save() const
 {
@@ -2771,149 +2677,21 @@ bool MainFrame::can_save_as() const
         !m_plater->canvas3D()->get_gizmos_manager().is_in_editing_mode(false);
 }
 
-void MainFrame::save_project()
-{
-    save_project_as(m_plater->get_project_filename(".3mf"));
-}
 
-bool MainFrame::save_project_as(const wxString& filename)
-{
-    bool ret = (m_plater != nullptr) ? m_plater->export_3mf(into_path(filename)) : false;
-    if (ret) {
-        // Make a copy of the active presets for detecting changes in preset values.
-        wxGetApp().update_saved_preset_from_current_preset();
-        // Save the names of active presets and project specific config into ProjectDirtyStateManager.
-        // Reset ProjectDirtyStateManager's state as saved, mark active UndoRedo step as saved with project.
-        m_plater->reset_project_dirty_after_save();
-    }
-    return ret;
-}
 
-bool MainFrame::can_export_model() const
-{
-    return (m_plater != nullptr) && !m_plater->model().objects.empty();
-}
 
-bool MainFrame::can_export_toolpaths() const
-{
-    return (m_plater != nullptr) && (m_plater->printer_technology() == ptFFF) && m_plater->is_preview_shown() && m_plater->is_preview_loaded() && m_plater->has_toolpaths_to_export();
-}
 
-bool MainFrame::can_export_supports() const
-{
-    if ((m_plater == nullptr) || (m_plater->printer_technology() != ptSLA) || m_plater->model().objects.empty())
-        return false;
 
-    bool can_export = false;
-    const PrintObjects& objects = m_plater->sla_print().objects();
-    for (const SLAPrintObject* object : objects)
-    {
-        if (!object->support_mesh().empty() || !object->pad_mesh().empty())
-        {
-            can_export = true;
-            break;
-        }
-    }
-    return can_export;
-}
 
-bool MainFrame::can_export_gcode() const
-{
-    if (m_plater == nullptr)
-        return false;
 
-    if (m_plater->model().objects.empty())
-        return false;
 
-    if (m_plater->is_export_gcode_scheduled())
-        return false;
 
-    if (!m_plater->is_gcode_valid())
-        return false;
 
-    // TODO:: add other filters
 
-    return true;
-}
 
-bool MainFrame::can_send_gcode() const
-{
-    if (m_plater && ! m_plater->model().objects.empty())
-        if (const DynamicPrintConfig *cfg = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config(); cfg)
-            if (const auto *print_host_opt = cfg->option<ConfigOptionString>("print_host"); print_host_opt)
-                return ! print_host_opt->value.empty();
-    return false;
-}
 
-bool MainFrame::can_export_gcode_sd() const
-{
-	if (m_plater == nullptr)
-		return false;
 
-	if (m_plater->model().objects.empty())
-		return false;
 
-	if (m_plater->is_export_gcode_scheduled())
-		return false;
-
-    if (!m_plater->is_gcode_valid())
-        return false;
-
-	// TODO:: add other filters
-
-	return wxGetApp().removable_drive_manager()->status().has_removable_drives;
-}
-
-bool MainFrame::can_eject() const
-{
-	return wxGetApp().removable_drive_manager()->status().has_eject;
-}
-
-bool MainFrame::can_slice() const
-{
-    bool bg_proc = wxGetApp().app_config->get_bool("background_processing");
-    return (m_plater != nullptr) ? !m_plater->model().objects.empty() && !bg_proc : false;
-}
-
-bool MainFrame::can_change_view() const
-{
-    switch (m_layout)
-    {
-    default:                   { return false; }
-    case ESettingsLayout::New: { return m_plater->IsShown(); }
-    case ESettingsLayout::Dlg: { return true; }
-    case ESettingsLayout::Old: { 
-        int page_id = m_tabpanel->GetSelection();
-        return page_id != wxNOT_FOUND && dynamic_cast<const Slic3r::GUI::Plater*>(m_tabpanel->GetPage((size_t)page_id)) != nullptr;
-    }
-    case ESettingsLayout::GCodeViewer: { return true; }
-    }
-}
-
-bool MainFrame::can_select() const
-{
-    return (m_plater != nullptr) && !m_plater->model().objects.empty();
-}
-
-bool MainFrame::can_deselect() const
-{
-    return (m_plater != nullptr) && !m_plater->is_selection_empty();
-}
-
-bool MainFrame::can_delete() const
-{
-    return (m_plater != nullptr) && !m_plater->is_selection_empty();
-}
-
-bool MainFrame::can_delete_all() const
-{
-    return (m_plater != nullptr) && !m_plater->model().objects.empty();
-}
-
-bool MainFrame::can_reslice() const
-{
-    return (m_plater != nullptr) && !m_plater->model().objects.empty();
-}
 
 void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
 {
@@ -3074,29 +2852,6 @@ void MainFrame::on_sys_color_changed()
     this->Refresh();
 }
 
-void MainFrame::update_mode_markers()
-{
-#ifdef __WXMSW__
-#ifdef _MSW_DARK_MODE
-    // update markers in common mode sizer
-    if (!wxGetApp().tabs_as_menu())
-        dynamic_cast<Notebook*>(m_tabpanel)->UpdateModeMarkers();
-#endif
-#endif
-
-    // update mode markers on side_bar
-   // wxGetApp().sidebar().update_mode_markers();
-
-    // update mode markers in tabs
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab : wxGetApp().tabs_list)
-        tab->update_mode_markers();
-#endif
-
-    // add by allen for ankerCfgDlg
-    for (auto tab : wxGetApp().ankerTabsList)
-        tab->update_mode_markers();
-}
 
 #ifdef _MSC_VER
     // \xA0 is a non-breaking space. It is entered here to spoil the automatic accelerators,
@@ -4178,26 +3933,8 @@ void MainFrame::load_config(const DynamicPrintConfig& config)
 #endif
 }
 
-void MainFrame::select_tab(Tab* tab)
-{
-    if (!tab)
-        return;
-    int page_idx = m_tabpanel->FindPage(tab);
-    if (page_idx != wxNOT_FOUND && m_layout == ESettingsLayout::Dlg)
-        page_idx++;
-    select_tab(size_t(page_idx));
-}
 
 
-void MainFrame::selectAnkerTab(AnkerTab* tab)
-{
-    if (!tab || !m_ankerCfgDlg)
-        return;
-    int page_idx = m_ankerCfgDlg->m_rightPanel->FindPage(tab);
-    if (page_idx != wxNOT_FOUND && m_layout == ESettingsLayout::Dlg)
-        page_idx++;
-    select_tab(size_t(page_idx));
-}
 
 void MainFrame::showAnkerCfgDlg() {
     if (m_ankerCfgDlg && !m_ankerCfgDlg->IsShown()) {
@@ -4206,182 +3943,12 @@ void MainFrame::showAnkerCfgDlg() {
     }
 }
 
-void MainFrame::select_tab(size_t tab/* = size_t(-1)*/)
-{
-    bool tabpanel_was_hidden = false;
-
-    // Controls on page are created on active page of active tab now.
-    // We should select/activate tab before its showing to avoid an UI-flickering
-    auto select = [this, tab](bool was_hidden) {
-        // when tab == -1, it means we should show the last selected tab
-        size_t new_selection = tab == (size_t)(-1) ? m_last_selected_tab : (m_layout == ESettingsLayout::Dlg && tab != 0) ? tab - 1 : tab;
-
-        if (m_tabpanel->GetSelection() != (int)new_selection)
-            m_tabpanel->SetSelection(new_selection);
-#ifdef _MSW_DARK_MODE
-        if (wxGetApp().tabs_as_menu()) {
-            if (Tab* cur_tab = dynamic_cast<Tab*>(m_tabpanel->GetPage(new_selection)))
-                update_marker_for_tabs_menu((m_layout == ESettingsLayout::Old ? m_menubar : m_settings_dialog.menubar()), cur_tab->title(), m_layout == ESettingsLayout::Old);
-            else if (tab == 0 && m_layout == ESettingsLayout::Old)
-                m_plater->get_current_canvas3D()->render();
-        }
-        // add by allen for ankerCfgDlg
-        if (wxGetApp().tabs_as_menu()) {
-            if (AnkerTab* cur_tab = dynamic_cast<AnkerTab*>(m_ankerCfgDlg->m_rightPanel->GetPage(new_selection)))
-                update_marker_for_tabs_menu((m_layout == ESettingsLayout::Old ? m_menubar : m_settings_dialog.menubar()), cur_tab->title(), m_layout == ESettingsLayout::Old);
-            else if (tab == 0 && m_layout == ESettingsLayout::Old)
-                m_plater->get_current_canvas3D()->render();
-        }
-#endif
-        if (tab == 0 && m_layout == ESettingsLayout::Old)
-            m_plater->canvas3D()->render();
-        else if (was_hidden) {
-            Tab* cur_tab = dynamic_cast<Tab*>(m_tabpanel->GetPage(new_selection));
-            if (cur_tab)
-                cur_tab->OnActivate();
-            // add by allen for ankerCfgDlg
-            AnkerTab* curTab = dynamic_cast<AnkerTab*>(m_ankerCfgDlg->m_rightPanel->GetPage(new_selection));
-            if (curTab)
-                curTab->OnActivate();
-        }
-        // add by allen for ankerCfgDlg
-        AnkerTab* curTab = dynamic_cast<AnkerTab*>(m_ankerCfgDlg->m_rightPanel->GetPage(new_selection));
-        if (curTab) {
-           m_ankerCfgDlg->resetPresetComBoxHighlight();
-           m_ankerCfgDlg->updateAnkerTabComBoxHighlight(curTab->type());
-        }
-    };
-
-    if (m_layout == ESettingsLayout::Dlg) {
-        if (tab==0) {
-            if (m_settings_dialog.IsShown())
-                this->SetFocus();
-            // plater should be focused for correct navigation inside search window
-            if (m_plater->canvas3D()->is_search_pressed())
-                m_plater->SetFocus();
-            return;
-        }
-        // Show/Activate Settings Dialog
-#ifdef __WXOSX__ // Don't call SetFont under OSX to avoid name cutting in ObjectList
-        if (m_settings_dialog.IsShown())
-            m_settings_dialog.Hide();
-        else
-            tabpanel_was_hidden = true;
-            
-        select(tabpanel_was_hidden);
-        m_tabpanel->Show();
-        // add by allen for ankerCfgDlg to hide old config setting dialog
-#if SHOW_OLD_SETTING_DIALOG
-        m_settings_dialog.Show();
-#endif //SHOW_OLD_SETTING_DIALOG
-#else
-        if (m_settings_dialog.IsShown()) {
-            select(false);
-            m_settings_dialog.SetFocus();
-        }
-        else {
-            tabpanel_was_hidden = true;
-            select(tabpanel_was_hidden);
-            m_tabpanel->Show();
-            // add by allen for ankerCfgDlg to hide old config setting dialog
-#if SHOW_OLD_SETTING_DIALOG
-            m_settings_dialog.Show();
-#endif //SHOW_OLD_SETTING_DIALOG
-        }
-#endif
-        if (m_settings_dialog.IsIconized())
-            m_settings_dialog.Iconize(false);
-    }
-    else if (m_layout == ESettingsLayout::New) {
-        m_main_sizer->Show(m_plater, tab == 0);
-        tabpanel_was_hidden = !m_main_sizer->IsShown(m_tabpanel);
-        select(tabpanel_was_hidden);
-        m_main_sizer->Show(m_tabpanel, tab != 0);
-
-        // plater should be focused for correct navigation inside search window
-        if (tab == 0)
-            m_plater->SetFocus();
-        Layout();
-    }
-    else {
-        select(false);
-#ifdef _MSW_DARK_MODE
-        if (wxGetApp().tabs_as_menu() && tab == 0)
-            m_plater->SetFocus();
-#endif
-    }
-
-    // When we run application in ESettingsLayout::New or ESettingsLayout::Dlg mode, tabpanel is hidden from the very beginning
-    // and as a result Tab::update_changed_tree_ui() function couldn't update m_is_nonsys_values values,
-    // which are used for update TreeCtrl and "revert_buttons".
-    // So, force the call of this function for Tabs, if tab panel was hidden
-    if (tabpanel_was_hidden) {
-#if SHOW_OLD_SETTING_DIALOG
-        for (auto cur_tab : wxGetApp().tabs_list)
-            cur_tab->update_changed_tree_ui();
-#endif
-        for (auto cur_tab : wxGetApp().ankerTabsList)
-            cur_tab->update_changed_tree_ui();
-    }
-        
-
-    //// when tab == -1, it means we should show the last selected tab
-    //size_t new_selection = tab == (size_t)(-1) ? m_last_selected_tab : (m_layout == ESettingsLayout::Dlg && tab != 0) ? tab - 1 : tab;
-    //if (m_tabpanel->GetSelection() != new_selection)
-    //    m_tabpanel->SetSelection(new_selection);
-    //if (tabpanel_was_hidden)
-    //    static_cast<Tab*>(m_tabpanel->GetPage(new_selection))->OnActivate();
-}
 
 // Set a camera direction, zoom to all objects.
-void MainFrame::select_view(const std::string& direction)
-{
-     if (m_plater)
-         m_plater->select_view(direction);
-}
 
 // #ys_FIXME_to_delete
-void MainFrame::on_presets_changed(SimpleEvent &event)
-{
-    auto *tab = dynamic_cast<Tab*>(event.GetEventObject());
-    wxASSERT(tab != nullptr);
-    if (tab == nullptr) {
-        return;
-    }
-
-    // Update preset combo boxes(Print settings, Filament, Material, Printer) from their respective tabs.
-    auto presets = tab->get_presets();
-    if (m_plater != nullptr && presets != nullptr) {
-
-        // FIXME: The preset type really should be a property of Tab instead
-        Slic3r::Preset::Type preset_type = tab->type();
-        if (preset_type == Slic3r::Preset::TYPE_INVALID) {
-            wxASSERT(false);
-            return;
-        }
-
-        m_plater->on_config_change(*tab->get_config());
-       // m_plater->sidebar().update_presets(preset_type);
-    }
-}
 
 // #ys_FIXME_to_delete
-void MainFrame::on_value_changed(wxCommandEvent& event)
-{
-    auto *tab = dynamic_cast<Tab*>(event.GetEventObject());
-    wxASSERT(tab != nullptr);
-    if (tab == nullptr)
-        return;
-
-    auto opt_key = event.GetString();
-    if (m_plater) {
-        m_plater->on_config_change(*tab->get_config()); // propagate config change events to the plater
-        if (opt_key == "extruders_count") {
-            auto value = event.GetInt();
-            m_plater->on_extruders_change(value);
-        }
-    }
-}
 
 void MainFrame::on_size(wxSizeEvent& event)
 {
@@ -4504,39 +4071,10 @@ void MainFrame::clearStarCommentData()
     g_sliceCommentData.reviewData = "";
     g_sliceCommentData.clientId = "";
 }
-void MainFrame::technology_changed()
-{
-    // update menu titles
-    PrinterTechnology pt = plater()->printer_technology();
-    if (int id = m_menubar->FindMenu(pt == ptFFF ? _L("Material Settings") : _L("Filament Settings")); id != wxNOT_FOUND)
-        m_menubar->SetMenuLabel(id , pt == ptSLA ? _L("Material Settings") : _L("Filament Settings"));
-
-    //if (wxGetApp().tab_panel()->GetSelection() != wxGetApp().tab_panel()->GetPageCount() - 1)
-    //    wxGetApp().tab_panel()->SetSelection(wxGetApp().tab_panel()->GetPageCount() - 1);
-
-}
 
 //
 // Called after the Preferences dialog is closed and the program settings are saved.
 // Update the UI based on the current preferences.
-void MainFrame::update_ui_from_settings()
-{
-//    const bool bp_on = wxGetApp().app_config->get_bool("background_processing");
-//     m_menu_item_reslice_now->Enable(!bp_on);
-//    m_plater->sidebar().show_reslice(!bp_on);
-//    m_plater->sidebar().show_export(bp_on);
-//    m_plater->sidebar().Layout();
-
-    if (m_plater)
-        m_plater->update_ui_from_settings();
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab: wxGetApp().tabs_list)
-        tab->update_ui_from_settings();
-#endif
-    // add by allen for ankerCfgDlg
-    for (auto tab : wxGetApp().ankerTabsList)
-        tab->update_ui_from_settings();
-}
 
 std::string MainFrame::get_base_name(const wxString &full_name, const char *extension) const 
 {
@@ -4630,36 +4168,6 @@ void MainFrame::updateMsgCenterItemContent(std::vector<MsgCenterItem>* pData)
     }
 }
 
-AnkerTab* MainFrame::openAnkerTabByPresetType(const Preset::Type type)
-{
-#if SHOW_OLD_SETTING_DIALOG
-    Slic3r::GUI::Tab* tab = Slic3r::GUI::wxGetApp().get_tab(type);
-    if (!tab)
-        return nullptr;
-
-    if (int page_id = Slic3r::GUI::wxGetApp().ankerTabPanel()->FindPage(tab); page_id != wxNOT_FOUND)
-    {
-        Slic3r::GUI::wxGetApp().ankerTabPanel()->SetSelection(page_id);
-        // Switch to Settings NotePad
-        Slic3r::GUI::wxGetApp().mainframe->select_tab();
-    }
-#endif
-    // add by allen for ankerCfgDlg
-    Slic3r::GUI::AnkerTab* ankerTab = Slic3r::GUI::wxGetApp().getAnkerTab(type);
-    if (!ankerTab)
-        return nullptr;
-
-    if (int page_id = Slic3r::GUI::wxGetApp().ankerTabPanel()->FindPage(ankerTab); page_id != wxNOT_FOUND)
-    {
-        Slic3r::GUI::wxGetApp().ankerTabPanel()->SetSelection(page_id);
-        // Switch to Settings NotePad
-        Slic3r::GUI::wxGetApp().mainframe->select_tab();
-        // show AnkerConfigDilog
-        wxGetApp().mainframe->showAnkerCfgDlg();
-    }
-
-    return ankerTab;
-}
 
 // ----------------------------------------------------------------------------
 // SettingsDialog
@@ -4700,10 +4208,8 @@ SettingsDialog::SettingsDialog(MainFrame* mainframe)
         auto key_up_handker = [this](wxKeyEvent& evt) {
             if ((evt.GetModifiers() & wxMOD_CONTROL) != 0) {
                 switch (evt.GetKeyCode()) {
-                case '1': { m_main_frame->select_tab(size_t(0)); break; }
-                case '2': { m_main_frame->select_tab(1); break; }
-                case '3': { m_main_frame->select_tab(2); break; }
-                case '4': { m_main_frame->select_tab(3); break; }
+                // Ctrl+1..4 selected the plater and the print/filament/printer
+                // preset tabs; all four are gone.
 #ifdef __APPLE__
                 case 'f':
 #else /* __APPLE__ */

@@ -4070,7 +4070,7 @@ void AnkerTab::select_preset(std::string preset_name, bool delete_current /*=fal
     }
 
     if (technology_changed)
-        wxGetApp().mainframe->technology_changed();
+        ; // technology_changed() removed with the preset tabs
 }
 
 bool AnkerTab::bPrintPresetNeedHide(Preset printPreset) {

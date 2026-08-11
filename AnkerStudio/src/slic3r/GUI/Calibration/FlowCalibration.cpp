@@ -178,7 +178,7 @@ namespace Slic3r {
 
             if (!plater->new_project())
                 return;
-            wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+            ; // select_tab() removed with the preset tabs
 
             //GLCanvas3D::set_warning_freeze(true);
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), _L("Load Model"));
@@ -271,7 +271,7 @@ namespace Slic3r {
 
             if (!plater->new_project())
                 return;
-            wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+            ; // select_tab() removed with the preset tabs
             if (params.mode != CalibMode::Calib_Temp_Tower)
                 return;
 
@@ -319,7 +319,7 @@ namespace Slic3r {
 
             if (!plater->new_project())
                 return;
-            wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+            ; // select_tab() removed with the preset tabs
             if (params.mode != CalibMode::Calib_Retraction_tower)
                 return;
 
@@ -438,7 +438,7 @@ namespace Slic3r {
             if (!plater->new_project())
                 return;
 
-            wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+            ; // select_tab() removed with the preset tabs
             if (params.mode != CalibMode::Calib_VFA_Tower)
                 return;
             //GLCanvas3D::set_warning_freeze(true);

@@ -708,7 +708,7 @@ namespace Slic3r {
             if (int page_id = wxGetApp().ankerTabPanel()->FindPage(ankerTab); page_id != wxNOT_FOUND) {
                 wxGetApp().ankerTabPanel()->SetSelection(page_id);
                 // Switch to Settings NotePad
-                wxGetApp().mainframe->select_tab();
+                ; // select_tab() removed with the preset tabs
 
                 // update btns enabling
                 ankerTab->update_btns_enabling();

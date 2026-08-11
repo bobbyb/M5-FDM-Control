@@ -1322,8 +1322,7 @@ void PlaterPresetComboBox::switch_to_tab()
     {
         wxGetApp().tab_panel()->SetSelection(page_id);
         // Switch to Settings NotePad
-        wxGetApp().mainframe->select_tab();
-
+            // select_tab() removed with the preset tabs; this file goes next.
         //In a case of a multi-material printing, for editing another Filament Preset
         //it's needed to select this preset for the "Filament settings" Tab
         if (m_type == Preset::TYPE_FILAMENT && wxGetApp().extruders_edited_cnt() > 1)
@@ -1348,7 +1347,7 @@ void PlaterPresetComboBox::switch_to_tab()
     {
         wxGetApp().ankerTabPanel()->SetSelection(page_id);
         // Switch to Settings NotePad
-        wxGetApp().mainframe->select_tab();
+        ; // select_tab() removed with the preset tabs
 
         //In a case of a multi-material printing, for editing another Filament Preset
         //it's needed to select this preset for the "Filament settings" Tab
@@ -1772,7 +1771,7 @@ void AnkerPlaterPresetComboBox::switch_to_tab()
     {
         wxGetApp().tab_panel()->SetSelection(page_id);
         // Switch to Settings NotePad
-        wxGetApp().mainframe->select_tab();
+        ; // select_tab() removed with the preset tabs
 
         //In a case of a multi-material printing, for editing another Filament Preset
         //it's needed to select this preset for the "Filament settings" Tab
@@ -1798,7 +1797,7 @@ void AnkerPlaterPresetComboBox::switch_to_tab()
     {
         wxGetApp().ankerTabPanel()->SetSelection(page_id);
         // Switch to Settings NotePad
-        wxGetApp().mainframe->selectAnkerTab(ankerTab);
+        ; // selectAnkerTab() removed with the preset tabs
         // show AnkerConfigDilog
         wxGetApp().mainframe->showAnkerCfgDlg();
 

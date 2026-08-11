@@ -123,8 +123,6 @@ class MainFrame : public DPIFrame
     std::string     get_base_name(const wxString &full_name, const char *extension = nullptr) const;
     std::string     get_dir_name(const wxString &full_name) const;
 
-    void on_presets_changed(SimpleEvent&);
-    void on_value_changed(wxCommandEvent&);
 
     void on_size(wxSizeEvent& event);
     void on_move(wxMoveEvent& event);
@@ -136,24 +134,7 @@ class MainFrame : public DPIFrame
     void OnDocumentLoaded(wxWebViewEvent& evt);
 	void OnScriptMessage(wxCommandEvent& evt);
 
-    bool can_start_new_project() const;
-    bool can_export_model() const;
-    bool can_export_toolpaths() const;
-    bool can_export_supports() const;
-    bool can_export_gcode() const;
-    bool can_send_gcode() const;
-	bool can_export_gcode_sd() const;
-	bool can_eject() const;
-    bool can_slice() const;
-    bool can_change_view() const;
-    bool can_select() const;
-    bool can_deselect() const;
-    bool can_delete() const;
-    bool can_delete_all() const;
-    bool can_reslice() const;
-    void bind_diff_dialog();
     // add by allen for ankerCfgDlg
-    void bind_diff_dialog_ankertab();
 
     wxFileHistory m_recent_projects;
 
@@ -225,7 +206,6 @@ public:
     void InitDeviceWidget();
     void ShowAnkerWebView(const std::string& from);
     void update_layout();
-    void update_mode_markers();
     void setUrl(std::string webUrl = std::string());
 	// Called when closing the application and when switching the application language.
 	void 		shutdown(bool restart = false);
@@ -246,7 +226,6 @@ public:
     AnkerWebView* CreateWebView(bool background);
     void        InitAnkerDevice();
     void        create_preset_tabs();
-    void        add_created_tab(Tab* panel, const std::string& bmp_name = "");
     bool        is_active_and_shown_tab(Tab* tab);
     // add by allen for ankerCfgDlg
     bool        isActiveAndShownAnkerTab(AnkerTab* tab);
@@ -260,7 +239,6 @@ public:
 #ifdef _WIN32
     void        show_tabs_menu(bool show);
 #endif
-    void        update_ui_from_settings();
     bool        is_loaded() const { return m_loaded; }
     bool        is_last_input_file() const  { return !m_qs_last_input_file.IsEmpty(); }
     bool        is_dlg_layout() const { return m_layout == ESettingsLayout::Dlg; }
@@ -278,24 +256,17 @@ public:
     void        load_config(const DynamicPrintConfig& config);
     // Select tab in m_tabpanel
     // When tab == -1, will be selected last selected tab
-    void        select_tab(Tab* tab);
     // add by allen for ankerCfgDlg
-    void        selectAnkerTab(AnkerTab* tab);
-    void        select_tab(size_t tab = size_t(-1));
     TabMode get_current_tab_mode() { return m_currentTabMode; }
     void        setTabMode(TabMode mode) { m_currentTabMode = mode; }
     void        showAnkerCfgDlg();
-    void        select_view(const std::string& direction);
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
 
     bool can_save() const;
     bool can_save_as() const;
-    void save_project();
-    bool save_project_as(const wxString& filename = wxString());
 
     void        add_to_recent_projects(const wxString& filename);
-    void        technology_changed();
     void        clearStarCommentData();
 
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
@@ -303,7 +274,6 @@ public:
     // add by allen for ankerCfgDlg
     AnkerTabPresetComboBox* GetAnkerTabPresetCombo(const Preset::Type type);
 
-    AnkerTab* openAnkerTabByPresetType(const Preset::Type type);
 
     void loginFinishHandle();
     void ShowErrDialogByCenter();

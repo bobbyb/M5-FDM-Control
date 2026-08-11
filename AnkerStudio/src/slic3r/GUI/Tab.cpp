@@ -1149,7 +1149,7 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 
     // We should to activate a tab with searched option, if it doesn't.
     // And do it before finding of the cur_item to avoid a case when Tab isn't activated jet and all treeItems are invisible
-    wxGetApp().mainframe->select_tab(this);
+    // select_tab() removed with the preset tabs; Tab itself goes next.
 
     while (cur_item) {
         auto title = m_treectrl->GetItemText(cur_item);
@@ -3575,7 +3575,7 @@ void Tab::select_preset(std::string preset_name, bool delete_current /*=false*/,
     }
 
     if (technology_changed)
-        wxGetApp().mainframe->technology_changed();
+        ; // technology_changed() removed with the preset tabs
 }
 
 // If the current preset is dirty, the user is asked whether the changes may be discarded.

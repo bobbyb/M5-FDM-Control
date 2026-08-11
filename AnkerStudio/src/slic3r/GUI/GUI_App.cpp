@@ -1952,7 +1952,7 @@ bool GUI_App::on_init_inner()
     mainframe->getwebLoginDataBack("app launch");
     // hide settings tabs after first Layout
     /*if (is_editor())
-        mainframe->select_tab(size_t(0));*/
+        ; // select_tab() removed with the preset tabs*/
 
     sidebarnew().object_list()->init_objects(); // propagate model objects to object list
 //     update_mode(); // !!! do that later
@@ -2417,7 +2417,7 @@ void GUI_App::set_mode_palette(const std::vector<wxColour>& palette)
     }
 
     if (save) {
-        mainframe->update_mode_markers();
+        // update_mode_markers() removed with the preset tabs
         app_config->set("mode_palette", escape_strings_cstyle(m_mode_palette));
     }
 }
@@ -2548,7 +2548,7 @@ void GUI_App::recreate_GUI(const wxString& msg_name)
     mainframe = new MainFrame(app_config->has("font_size") ? atoi(app_config->get("font_size").c_str()) : -1);
     if (is_editor())
         // hide settings tabs after first Layout
-        mainframe->select_tab(size_t(0));
+        ; // select_tab() removed with the preset tabs
     // Propagate model objects to object list.
     sidebarnew().object_list()->init_objects();
     SetTopWindow(mainframe);
@@ -2678,7 +2678,7 @@ void GUI_App::update_ui_from_settings()
 #endif //_MSW_DARK_MODE
     }
 #endif
-    mainframe->update_ui_from_settings();
+    // update_ui_from_settings() removed with the plater/preset UI
 }
 
 void GUI_App::persist_window_geometry(wxTopLevelWindow *window, bool default_maximized)
@@ -3455,7 +3455,7 @@ void GUI_App::open_preferences(const std::string& highlight_option /*= std::stri
         // hide full main_sizer for mainFrame
         mainframe->GetSizer()->Show(false);
         mainframe->update_layout();
-        mainframe->select_tab(size_t(0));
+        ; // select_tab() removed with the preset tabs
     }
 }
 
