@@ -39,9 +39,9 @@ class GcodeInfoScanner
 {
 public:
     // Which slicer wrote the file. The full list is kept even though only
-    // AnkerMake / AnkerStudio / PrusaSlicer / Cura carry comments we read: a
-    // recognised-but-unsupported producer stops the scan on the spot, whereas an
-    // unrecognised one would keep searching to the end of the file.
+    // AnkerMake / AnkerStudio / PrusaSlicer / Cura / OrcaSlicer carry comments we
+    // read: a recognised-but-unsupported producer stops the scan on the spot,
+    // whereas an unrecognised one would keep searching to the end of the file.
     enum class EProducer
     {
         Unknown,
@@ -57,6 +57,7 @@ public:
         KissSlicer,
         BambuStudio,
         AnkerMake,
+        OrcaSlicer,
     };
 
     // Reads the summary comments out of a G-code / .acode file.
@@ -86,13 +87,21 @@ public:
     }
 
 private:
+    // Largest thumbnail worth stopping the scan for. A file may carry several
+    // (OrcaSlicer emits 48x48 then 300x300); we keep the biggest, and once one at
+    // least this large is in hand there is no point reading further.
+    static constexpr int PREFERRED_THUMBNAIL_AREA = 256 * 256;
+
     // Per-line comment matchers. Each takes the comment body (';' and surrounding
     // whitespace already stripped) and fills its target on a hit.
     static bool DetectProducer(std::string_view comment, EProducer& producer);
-    static bool SearchThumbnailBegin(std::string_view line, EProducer producer,
-                                     const std::string& format, int task_flag);
-    static bool SearchThumbnailEnd(std::string_view line, const std::string& format,
-                                   bool has_searched_tag);
+
+    // Matches "thumbnail begin WxH [bytes]", "thumbnail begin W H" (AnkerMake) and
+    // the "thumbnail_PNG begin ..." variant, reporting W*H so the caller can keep
+    // the largest. The old code matched one hardcoded 256x256 string, which meant
+    // PrusaSlicer's 128x128 and OrcaSlicer's 300x300 previews were silently dropped.
+    static bool SearchThumbnailBegin(std::string_view line, int& area);
+    static bool SearchThumbnailEnd(std::string_view line);
     static bool SearchSpeed(std::string_view line, EProducer producer, std::string& speed);
     static bool SearchFilamentWeight(std::string_view line, EProducer producer, std::string& weight);
     static bool SearchFilamentLength(std::string_view line, EProducer producer, std::string& length);
