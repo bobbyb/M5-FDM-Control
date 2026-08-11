@@ -690,10 +690,8 @@ void MainFrame::initTabPanel() {
 
     // initialize tabpanel and menubar
     init_tabpanel();
-    if (wxGetApp().is_gcode_viewer())
-        init_menubar_as_gcodeviewer();
-    else
-        init_menubar_as_editor();
+    // The standalone G-code viewer mode went with the Slice tab.
+    init_menubar_as_editor();
 
 #if _WIN32
     // This is needed on Windows to fake the CTRL+# of the window menu when using the numpad
@@ -794,7 +792,6 @@ void MainFrame::initTabPanel() {
                 }
             }
             });
-        m_pFunctionPanel->m_calib_menu = m_calibration_menu;
     }
     m_sliceCommentDialog = new AnkerSliceCommentDialog(this, _L("Rate Your Experience"));
     m_sliceCommentDialog->SetMaxSize(AnkerSize(400,420));
@@ -1333,10 +1330,10 @@ void MainFrame::update_layout()
         Layout();
     };
 
-    ESettingsLayout layout = wxGetApp().is_gcode_viewer() ? ESettingsLayout::GCodeViewer :
-        (wxGetApp().app_config->get_bool("old_settings_layout_mode") ? ESettingsLayout::Old :
-         wxGetApp().app_config->get_bool("new_settings_layout_mode") ? ( wxGetApp().tabs_as_menu() ? ESettingsLayout::Old : ESettingsLayout::New) :
-         wxGetApp().app_config->get_bool("dlg_settings_layout_mode") ? ESettingsLayout::Dlg : ESettingsLayout::Old);
+    // Dlg is the only layout this fork has: the Old/New variants put the plater in
+    // the settings notebook, and GCodeViewer was the standalone toolpath viewer.
+    // Both went with the Slice tab.
+    ESettingsLayout layout = ESettingsLayout::Dlg;
 
     if (m_layout == layout)
         return;
@@ -1374,44 +1371,6 @@ void MainFrame::update_layout()
     {
         break;
     }
-    case ESettingsLayout::Old:
-    {
-        m_plater->Reparent(m_tabpanel);
-#ifdef _MSW_DARK_MODE
-        m_plater->Layout();
-        if (!wxGetApp().tabs_as_menu())
-            dynamic_cast<Notebook*>(m_tabpanel)->InsertPage(0, m_plater, _L("Plater"), std::string("plater"), true);
-        else
-#endif
-        m_tabpanel->InsertPage(0, m_plater, _L("Plater"));
-        m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 1);
-        m_plater->Show();
-        m_tabpanel->Show();
-        // update Tabs
-        if (old_layout == ESettingsLayout::Dlg)
-            if (int sel = m_tabpanel->GetSelection(); sel != wxNOT_FOUND)
-                m_tabpanel->SetSelection(sel+1);// call SetSelection to correct layout after switching from Dlg to Old mode
-#ifdef _MSW_DARK_MODE
-        if (wxGetApp().tabs_as_menu())
-            show_tabs_menu(true);
-#endif
-        break;
-    }
-    case ESettingsLayout::New:
-    {
-        m_main_sizer->Add(m_plater, 1, wxEXPAND);
-        m_tabpanel->Hide();
-        m_main_sizer->Add(m_tabpanel, 1, wxEXPAND);
-        m_plater_page = new wxPanel(m_tabpanel);
-#ifdef _MSW_DARK_MODE
-        if (!wxGetApp().tabs_as_menu())
-            dynamic_cast<Notebook*>(m_tabpanel)->InsertPage(0, m_plater_page, _L("Plater"), std::string("plater"), true);
-        else
-#endif
-        m_tabpanel->InsertPage(0, m_plater_page, _L("Plater")); // empty panel just for Plater tab */
-        m_plater->Show();
-        break;
-    }
     case ESettingsLayout::Dlg:
     {
         // The Slice tab is gone: the plater is no longer a page of m_printTabPanel,
@@ -1437,15 +1396,6 @@ void MainFrame::update_layout()
         if (wxGetApp().tabs_as_menu())
             show_tabs_menu(false);
 #endif
-        break;
-    }
-    case ESettingsLayout::GCodeViewer:
-    {
-        m_main_sizer->Add(m_plater, 1, wxEXPAND);
-        m_plater->set_default_bed_shape();
-        m_plater->get_collapse_toolbar().set_enabled(false);
-        m_plater->collapse_sidebar(true);
-        m_plater->Show();
         break;
     }
     }
@@ -1663,8 +1613,9 @@ void MainFrame::update_title()
     }
 
     title += wxString(build_id);
-    if (wxGetApp().is_editor())
-        title += (" " + _L("Based on PrusaSlicer"));
+    // The "Based on PrusaSlicer" suffix is gone from the title bar. The upstream
+    // attribution itself stays in the About dialog, the README and the LICENSE,
+    // where AGPL-3.0 requires it.
 
     SetTitle(title);
 }
@@ -3618,180 +3569,15 @@ void MainFrame::init_menubar_as_editor()
 #endif
 
     // File menu
+    // File menu. Everything it used to hold -- new/open/save project, import
+    // STL/SLA/ZIP, import config, export G-code/STL/AMF -- was slicing. The one
+    // file operation this fork has is picking an already-sliced G-code to print,
+    // which is the Device tab's "Start Printing" flow.
     wxMenu* fileMenu = new wxMenu;
     {
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_newproject") + "\tCtrl+N", _L("Start a new project"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->new_project(); }, "", nullptr,
-            [this](){return m_plater != nullptr && can_start_new_project(); }, this);
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_openproject") + "\tCtrl+O", _L("Open a project file"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->load_project(); }, ""/*"open"*/, nullptr,
-            [this](){return m_plater != nullptr; }, this);
-
-        wxMenu* recent_projects_menu = new wxMenu();
-        wxMenuItem* recent_projects_submenu = append_submenu(fileMenu, recent_projects_menu, wxID_ANY, _L("common_menu_file_recentproject"), "");
-        m_recent_projects.UseMenu(recent_projects_menu);
-        Bind(wxEVT_MENU, [this](wxCommandEvent& evt) {
-            size_t file_id = evt.GetId() - wxID_FILE1;
-            wxString filename = m_recent_projects.GetHistoryFile(file_id);
-            if (wxFileExists(filename)) {
-                if (wxGetApp().can_load_project())
-                    m_plater->load_project(filename);
-            }
-            else
-            {
-                //wxMessageDialog msg(this, _L("The selected project is no longer available.\nDo you want to remove it from the recent projects list?"), _L("Error"), wxYES_NO | wxYES_DEFAULT);
-                MessageDialog msg(this, _L("The selected project is no longer available.\nDo you want to remove it from the recent projects list?"), _L("Error"), wxYES_NO | wxYES_DEFAULT);
-                if (msg.ShowModal() == wxID_YES)
-                {
-                    m_recent_projects.RemoveFileFromHistory(file_id);
-                        std::vector<std::string> recent_projects;
-                        size_t count = m_recent_projects.GetCount();
-                        for (size_t i = 0; i < count; ++i)
-                        {
-                            recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
-                        }
-                    wxGetApp().app_config->set_recent_projects(recent_projects);
-                }
-            }
-            }, wxID_FILE1, wxID_FILE9);
-
-        std::vector<std::string> recent_projects = wxGetApp().app_config->get_recent_projects();
-        std::reverse(recent_projects.begin(), recent_projects.end());
-        for (const std::string& project : recent_projects)
-        {
-            m_recent_projects.AddFileToHistory(from_u8(project));
-        }
-
-        Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) { evt.Enable(m_recent_projects.GetCount() > 0); }, recent_projects_submenu->GetId());
-
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_saveproject") + "\tCtrl+S", _L("Save current project file"),
-            [this](wxCommandEvent&) { save_project(); }, ""/*"save"*/, nullptr,
-            [this](){return m_plater != nullptr && can_save(); }, this);
-#ifdef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_saveprojectas") + "\tCtrl+Shift+S", _L("Save current project file as"),
-#else
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_saveprojectas") + "\tCtrl+Alt+S", _L("Save current project file as"),
-#endif // __APPLE__
-            [this](wxCommandEvent&) { save_project_as(); }, ""/*"save"*/, nullptr,
-            [this](){return m_plater != nullptr && can_save_as(); }, this);
-
-        fileMenu->AppendSeparator();
-
-        wxMenu* import_menu = new wxMenu();
-        append_menu_item(import_menu, wxID_ANY, _L("common_menu_file_Importlist") + "\tCtrl+I", _L("Load a model"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->add_model(); }, ""/*"import_plater"*/, nullptr,
-            [this](){return m_plater != nullptr; }, this);
-        
-        /*append_menu_item(import_menu, wxID_ANY, _L("Import STL (Imperial Units)"), _L("Load an model saved with imperial units"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->add_model(true); }, "import_plater", nullptr,
-            [this](){return m_plater != nullptr; }, this);
-        
-        append_menu_item(import_menu, wxID_ANY, _L("Import SLA Archive") + dots, _L("Load an SLA archive"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->import_sl1_archive(); }, "import_plater", nullptr,
-            [this](){return m_plater != nullptr && m_plater->get_ui_job_worker().is_idle(); }, this);  */
-    
-        /*append_menu_item(import_menu, wxID_ANY, _L("Import ZIP Archive") + dots, _L("Load a ZIP archive"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->import_zip_archive(); }, "import_plater", nullptr,
-            [this]() {return m_plater != nullptr; }, this);
-
-        import_menu->AppendSeparator();  */
-        append_menu_item(import_menu, wxID_ANY, _L("common_menu_file_Importconfig") + "\tCtrl+L", _L("Load exported configuration file"),
-            [this](wxCommandEvent&) { load_config_file(); }, ""/*"import_config",*/, nullptr,
-            []() {return true; }, this);
-       /*append_menu_item(import_menu, wxID_ANY, _L("Import Config from &Project") + dots + "\tCtrl+Alt+L", _L("Load configuration from project file"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->extract_config_from_project(); }, "import_config", nullptr,
-            []() {return true; }, this);*/
-        import_menu->AppendSeparator();
-        append_menu_item(import_menu, wxID_ANY, _L("common_menu_file_Importconfigbundle") + "\tCtrl+Alt+L", _L("Load presets from a bundle"),
-            [this](wxCommandEvent&) { load_configbundle(); }, ""/*"import_config_bundle"*/, nullptr,
-            []() {return true; }, this);
-        append_submenu(fileMenu, import_menu, wxID_ANY, _L("common_menu_file_import"), "");
-
-        wxMenu* export_menu = new wxMenu();
-        wxMenuItem* item_export_gcode = append_menu_item(export_menu, wxID_ANY, _L("common_menu_file_exportgocde") + "\tCtrl+G", _L("Export current plate as G-code"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_gcode(false, true); }, ""/*"export_gcode"*/, nullptr,
-            [this](){return can_export_gcode(); }, this);
-        m_changeable_menu_items.push_back(item_export_gcode);
-        /*wxMenuItem* item_send_gcode = append_menu_item(export_menu, wxID_ANY, _L("S&end G-code") + dots + "\tCtrl+Shift+G", _L("Send to print current plate as G-code"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->send_gcode(); }, "export_gcode", nullptr,
-            [this](){return can_send_gcode(); }, this);
-        m_changeable_menu_items.push_back(item_send_gcode);   */
-		append_menu_item(export_menu, wxID_ANY, _L("common_menu_file_exportgocde2sd") + "\tCtrl+U", _L("Export current plate as G-code to SD card / Flash drive"),
-			[this](wxCommandEvent&) { if (m_plater) m_plater->export_gcode(true, true); }, ""/*"export_to_sd"*/, nullptr,
-			[this]() {return can_export_gcode_sd(); }, this);
-        export_menu->AppendSeparator();
-        append_menu_item(export_menu, wxID_ANY, _L("common_menu_file_exportas"), _L("Export current plate as STL/OBJ"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_stl_obj(); }, ""/*"export_plater"*/, nullptr,
-            [this](){return can_export_model(); }, this);
-        /*append_menu_item(export_menu, wxID_ANY, _L("Export Plate as STL/OBJ &Including Supports") + dots, _L("Export current plate as STL/OBJ including supports"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_stl_obj(true); }, "export_plater", nullptr,
-            [this](){return can_export_supports(); }, this);*/
-// Deprecating AMF export. Let's wait for user feedback.
-//        append_menu_item(export_menu, wxID_ANY, _L("Export Plate as &AMF") + dots, _L("Export current plate as AMF"),
-//            [this](wxCommandEvent&) { if (m_plater) m_plater->export_amf(); }, "export_plater", nullptr,
-//            [this](){return can_export_model(); }, this);
-       /* export_menu->AppendSeparator();
-        append_menu_item(export_menu, wxID_ANY, _L("Export &Toolpaths as OBJ") + dots, _L("Export toolpaths as OBJ"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_toolpaths_to_obj(); }, "export_plater", nullptr,
-            [this]() {return can_export_toolpaths(); }, this);*/
-        export_menu->AppendSeparator();
-        append_menu_item(export_menu, wxID_ANY, _L("common_menu_file_exportconfig") +"\tCtrl+E", _L("Export current configuration to file"),
-            [this](wxCommandEvent&) { export_config(); }, ""/*"export_config"*/, nullptr,
-            []() {return true; }, this);
-        append_menu_item(export_menu, wxID_ANY, _L("common_menu_file_exportconfigbundle"), _L("Export all presets to file"),
-            [this](wxCommandEvent&) { export_configbundle(); }, ""/*"export_config_bundle"*/, nullptr,
-            []() {return true; }, this);
-        /*append_menu_item(export_menu, wxID_ANY, _L("Export Config Bundle With Physical Printers") + dots, _L("Export all presets including physical printers to file"),
-            [this](wxCommandEvent&) { export_configbundle(true); }, "export_config_bundle", nullptr,
-            []() {return true; }, this);    */
-        append_submenu(fileMenu, export_menu, wxID_ANY, _L("common_menu_file_export"), "");
-
-		/*append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_ejectsd") + dots + "\tCtrl+T", _L("Eject SD card / Flash drive after the G-code was exported to it."),
-			[this](wxCommandEvent&) { if (m_plater) m_plater->eject_drive(); }, "eject_sd", nullptr,
-			[this]() {return can_eject(); }, this);*/
-
-       // fileMenu->AppendSeparator();
-
-#if 0
-        m_menu_item_repeat = nullptr;
-        append_menu_item(fileMenu, wxID_ANY, _L("Quick Slice") +dots+ "\tCtrl+U", _L("Slice a file into a G-code"),
-            [this](wxCommandEvent&) {
-                wxTheApp->CallAfter([this]() {
-                    quick_slice();
-                    m_menu_item_repeat->Enable(is_last_input_file());
-                }); }, "cog_go.png");
-        append_menu_item(fileMenu, wxID_ANY, _L("Quick Slice and Save As") +dots +"\tCtrl+Alt+U", _L("Slice a file into a G-code, save as"),
-            [this](wxCommandEvent&) {
-            wxTheApp->CallAfter([this]() {
-                    quick_slice(qsSaveAs);
-                    m_menu_item_repeat->Enable(is_last_input_file());
-                }); }, "cog_go.png");
-        m_menu_item_repeat = append_menu_item(fileMenu, wxID_ANY, _L("Repeat Last Quick Slice") +"\tCtrl+Shift+U", _L("Repeat last quick slice"),
-            [this](wxCommandEvent&) {
-            wxTheApp->CallAfter([this]() {
-                quick_slice(qsReslice);
-            }); }, "cog_go.png");
-        m_menu_item_repeat->Enable(false);
-        fileMenu->AppendSeparator();
-#endif
-       
-        fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_repairstl"), _L("Automatically repair an STL file"),
-            [this](wxCommandEvent&) { repair_stl(); }, ""/*"wrench"*/, nullptr,
-            []() { return true; }, this);
-        m_menu_item_reslice_now = append_menu_item(fileMenu, wxID_ANY, _L("common_menu_file_slice") + "\tCtrl+R", _L("Start new slicing process"),
-            [this](wxCommandEvent&) { reslice_now(); }, ""/*"re_slice"*/, nullptr,
-            [this]() { return m_plater != nullptr && can_reslice(); }, this);
-       // fileMenu->AppendSeparator();
-        //append_menu_item(fileMenu, wxID_ANY, _L("&G-code Preview") + dots, _L("Open G-code viewer"),
-        //    [this](wxCommandEvent&) { start_new_gcodeviewer_open_file(this); }, "", nullptr);
-        //fileMenu->AppendSeparator();
-        //#ifdef _WIN32
-        //    append_menu_item(fileMenu, wxID_EXIT, _L("E&xit"), wxString::Format(_L("Exit %s"), SLIC3R_APP_NAME),
-        //#else
-        //    append_menu_item(fileMenu, wxID_EXIT, _L("&Quit"), wxString::Format(_L("Quit %s"), SLIC3R_APP_NAME),
-        //#endif
-        //    [this](wxCommandEvent&) { Close(false); }, "exit");
+        append_menu_item(fileMenu, wxID_ANY, _L("Start Printing") + "\tCtrl+P", _L("Choose a G-code file and send it to the printer"),
+            [this](wxCommandEvent&) { if (m_pDeviceWidget) m_pDeviceWidget->startPrintFlow(); }, "", nullptr,
+            [this]() { return m_pDeviceWidget != nullptr; }, this);
     }
 
     // Edit menu
@@ -3864,14 +3650,12 @@ void MainFrame::init_menubar_as_editor()
         append_menu_item(windowMenu, wxID_HIGHEST + 2, _L("P&rint Settings Tab") + "\tCtrl+2", _L("Show the print settings"),
             [this/*, tab_offset*/](wxCommandEvent&) { select_tab(1); }, ""/*"cog"*/, nullptr,
             []() {return true; }, this);
-        wxMenuItem* item_material_tab = append_menu_item(windowMenu, wxID_HIGHEST + 3, _L("&Filament Settings Tab") + "\tCtrl+3", _L("Show the filament settings"),
+        append_menu_item(windowMenu, wxID_HIGHEST + 3, _L("&Filament Settings Tab") + "\tCtrl+3", _L("Show the filament settings"),
             [this/*, tab_offset*/](wxCommandEvent&) { select_tab(2); }, ""/*"spool"*/, nullptr,
             []() {return true; }, this);
-        m_changeable_menu_items.push_back(item_material_tab);
-        wxMenuItem* item_printer_tab = append_menu_item(windowMenu, wxID_HIGHEST + 4, _L("Print&er Settings Tab") + "\tCtrl+4", _L("Show the printer settings"),
+        append_menu_item(windowMenu, wxID_HIGHEST + 4, _L("Print&er Settings Tab") + "\tCtrl+4", _L("Show the printer settings"),
             [this/*, tab_offset*/](wxCommandEvent&) { select_tab(3); }, ""/*"printer"*/, nullptr,
             []() {return true; }, this);
-        m_changeable_menu_items.push_back(item_printer_tab);
         if (m_plater) {
             windowMenu->AppendSeparator();
             append_menu_item(windowMenu, wxID_HIGHEST + 5, _L("3&D") + "\tCtrl+5", _L("Show the 3D editing view"),
@@ -3906,34 +3690,9 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { diff_dialog.show();}, ""/*"compare"*/, nullptr, []() {return true; }, this);
     }
 
-    // View menu
+    // View menu removed: it drove the 3D scene (view angles, object labels).
     wxMenu* viewMenu = nullptr;
-    if (m_plater) {
-        viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
-        viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("common_menu_view_showlabels") + sep + "&E", _L("Show object/instance labels in 3D scene"),
-            [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); }, this,
-            [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
-        //append_menu_check_item(viewMenu, wxID_ANY, _L("&Collapse Sidebar") + sep + "Shift+" + sep_space + "Tab", _L("Collapse sidebar"),
-        //    [this](wxCommandEvent&) { m_plater->collapse_sidebar(!m_plater->is_sidebar_collapsed()); }, this,
-        //    []() { return true; }, [this]() { return m_plater->is_sidebar_collapsed(); }, this);
-        // OSX adds its own menu item to toggle fullscreen.
-        append_menu_check_item(viewMenu, wxID_ANY, _L("common_menu_view_fullscreen") + "\t" + "F11", _L("Fullscreen"),
-            [this](wxCommandEvent& event) {
 
-#ifdef  __APPLE__
-            ToggleFullScreen(this);
-#endif
-#ifdef  WIN32
-                this->ShowFullScreen(!this->IsFullScreen(),
-                    // wxFULLSCREEN_ALL: wxFULLSCREEN_NOMENUBAR | wxFULLSCREEN_NOTOOLBAR | wxFULLSCREEN_NOSTATUSBAR | wxFULLSCREEN_NOBORDER | wxFULLSCREEN_NOCAPTION
-                    wxFULLSCREEN_NOSTATUSBAR | wxFULLSCREEN_NOBORDER | wxFULLSCREEN_NOCAPTION);
-#endif
-        },
-            this, []() { return true; }, [this]() { return this->IsFullScreen(); }, this);
-
-    }
     // Settings menu
     wxMenu* settingsMenu = nullptr;
     if (m_plater) {
@@ -4003,67 +3762,8 @@ void MainFrame::init_menubar_as_editor()
             });
     }
 
-    // Calibration menu
-    m_calibration_menu = nullptr;
-    if (m_plater) {
-        // SoftFever calibrations
-        m_calibration_menu = new wxMenu();
-
-        // Temperature
-        append_menu_item(m_calibration_menu, wxID_ANY, _L("common_calib_temperature"), _L("Temperature"),
-            [this](wxCommandEvent&) { wxGetApp().calib_filament_temperature_dialog((wxWindow*)this, m_plater); });
-
-        // Flowrate
-        auto flowrate_menu = new wxMenu();
-        append_menu_item(flowrate_menu, wxID_ANY, _L("common_calib_pass_1"), _L("Flow rate test - Pass 1"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(1); });
-        append_menu_item(flowrate_menu, wxID_ANY, _L("common_calib_pass_2"), _L("Flow rate test - Pass 2"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(2); });
-        append_submenu(m_calibration_menu, flowrate_menu, wxID_ANY, _L("common_calib_flow_rate"), _L("Flow rate"));
-
-        // PA
-        append_menu_item(m_calibration_menu, wxID_ANY, _L("common_calib_pressure_advance"), _L("Pressure advance"),
-            [this](wxCommandEvent&) {
-                wxGetApp().calib_pressure_advance_dialog((wxWindow*)this, m_plater);
-            });
-
-        // Retraction
-        append_menu_item(m_calibration_menu, wxID_ANY, _L("common_calib_retraction_test"), _L("Retraction test"),
-            [this](wxCommandEvent&) {
-                wxGetApp().calib_retraction_dialog((wxWindow*)this, m_plater);
-            });
-
-        // Advance calibrations
-        auto advance_menu = new wxMenu();
-        append_menu_item(
-            advance_menu, wxID_ANY, _L("common_calib_max_flowrate"), _L("Max flowrate"),
-            [this](wxCommandEvent&) {
-                wxGetApp().calib_max_flowrate_dialog((wxWindow*)this, m_plater);
-            });
-        append_menu_item(
-            advance_menu, wxID_ANY, _L("common_calib_VFA"), _L("VFA"),
-            [this](wxCommandEvent&) {
-                wxGetApp().calib_vfa_dialog((wxWindow*)this, m_plater);
-            });
-
-        append_submenu(m_calibration_menu, advance_menu, wxID_ANY, _L("common_calib_more"), _L("More calibrations"));
-        
-        // Tolerance Test
-        //append_menu_item(calib_menu, wxID_ANY, _L("Orca Tolerance Test"), _L("Orca Tolerance Test"),
-        //    [this](wxCommandEvent&) {
-        //        m_plater->new_project();
-        //        m_plater->add_model(false, Slic3r::resources_dir() + "/calib/tolerance_test/OrcaToleranceTest.stl");
-        //    }, "", nullptr,
-        //    [this]() {return m_plater->is_view3D_shown();; }, this);
-
-        //append_menu_item(m_calibration_menu, wxID_ANY, _(L("Ironing pattern calibration")), _(L("Create a test print to help you to set your over-bridge flow ratio and ironing pattern.")),
-        //    [this](wxCommandEvent&) { wxGetApp().over_bridge_dialog(); });
-        //// help
-        //append_menu_item(m_calibration_menu, wxID_ANY, _L("Tutorial"), _L("Calibration help"),
-        //    [this](wxCommandEvent&) { wxLaunchDefaultBrowser("https://github.com/SoftFever/OrcaSlicer/wiki/Calibration", wxBROWSER_NEW_WINDOW); }, "", nullptr,
-        //    [this]() {return m_plater->is_view3D_shown();; }, this);
-
-    }
+    // Calibration menu removed: every calibration loaded its test model into
+    // the plater (GUI/Calibration/FlowCalibration.cpp), so it went with slicing.
 
     // Help menu
     auto helpMenu = generate_help_menu();
@@ -4074,12 +3774,11 @@ void MainFrame::init_menubar_as_editor()
     m_menubar = new wxMenuBar();
     m_menubar->SetFont(this->normal_font());
     m_menubar->Append(fileMenu, _L("common_menu_title_file"));
-    if (editMenu) m_menubar->Append(editMenu, _L("common_menu_title_edit"));  
+    if (editMenu) m_menubar->Append(editMenu, _L("common_menu_title_edit"));
    // m_menubar->Append(windowMenu, _L("&Window"));
-    if (viewMenu) m_menubar->Append(viewMenu, _L("common_menu_title_view"));
     if(settingsMenu) m_menubar->Append(settingsMenu, _L("common_menu_title_settings"));
-    
-    if (settingsMenu) m_menubar->Append(m_calibration_menu, _L("common_calib_calibration"));
+    // View and Calibration are gone. Note the Calibration append was not guarded
+    // on its own menu, so leaving it would have passed a null wxMenu to Append.
     // Add additional menus from C++
     //wxGetApp().add_config_menu(m_menubar);
     m_menubar->Append(helpMenu, _L("common_menu_title_help"));
@@ -4345,82 +4044,20 @@ void MainFrame::open_menubar_item(const wxString& menu_name,const wxString& item
     wxPostEvent((wxEvtHandler*)menu, wxCommandEvent(wxEVT_MENU, item_id));
 }
 
-void MainFrame::init_menubar_as_gcodeviewer()
-{
-    wxMenu* fileMenu = new wxMenu;
-    {
-        append_menu_item(fileMenu, wxID_ANY, _L("&Open G-code") + dots + "\tCtrl+O", _L("Open a G-code file"),
-            [this](wxCommandEvent&) { if (m_plater != nullptr) m_plater->load_gcode(); }, "open", nullptr,
-            [this]() {return m_plater != nullptr; }, this);
-#ifdef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Re&load from Disk") + dots + "\tCtrl+Shift+R",
-            _L("Reload the plater from disk"), [this](wxCommandEvent&) { m_plater->reload_gcode_from_disk(); },
-            "", nullptr, [this]() { return !m_plater->get_last_loaded_gcode().empty(); }, this);
-#else
-        append_menu_item(fileMenu, wxID_ANY, _L("Re&load from Disk") + sep + "F5",
-            _L("Reload the plater from disk"), [this](wxCommandEvent&) { m_plater->reload_gcode_from_disk(); },
-            "", nullptr, [this]() { return !m_plater->get_last_loaded_gcode().empty(); }, this);
-#endif // __APPLE__
-        fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_ANY, _L("Export &Toolpaths as OBJ") + dots, _L("Export toolpaths as OBJ"),
-            [this](wxCommandEvent&) { if (m_plater != nullptr) m_plater->export_toolpaths_to_obj(); }, "export_plater", nullptr,
-            [this]() {return can_export_toolpaths(); }, this);
-        append_menu_item(fileMenu, wxID_ANY, _L("Open &M5 FDM Control") + dots, _L("Open M5 FDM Control"),
-            [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr,
-            []() {return true; }, this);
-        fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_EXIT, _L("&Quit"), wxString::Format(_L("Quit %s"), SLIC3R_APP_NAME),
-            [this](wxCommandEvent&) { Close(false); });
-    }
-
-    // View menu
-    wxMenu* viewMenu = nullptr;
-    if (m_plater != nullptr) {
-        viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
-        viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show Legen&d") + sep + "L", _L("Show legend"),
-            [this](wxCommandEvent&) { m_plater->show_legend(!m_plater->is_legend_shown()); }, this,
-            [this]() { return m_plater->is_preview_shown(); }, [this]() { return m_plater->is_legend_shown(); }, this);
-    }
-
-    // helpmenu
-    auto helpMenu = generate_help_menu();
-
-    m_menubar = new wxMenuBar();
-    m_menubar->Append(fileMenu, _L("&File"));
-    if (viewMenu != nullptr) m_menubar->Append(viewMenu, _L("&View"));
-    // Add additional menus from C++
-    wxGetApp().add_config_menu(m_menubar);
-    m_menubar->Append(helpMenu, _L("&Help"));
-    SetMenuBar(m_menubar);
-
-#ifdef __APPLE__
-    // This fixes a bug on Mac OS where the quit command doesn't emit window close events
-    // wx bug: https://trac.wxwidgets.org/ticket/18328
-    wxMenu* apple_menu = m_menubar->OSXGetAppleMenu();
-    if (apple_menu != nullptr) {
-        apple_menu->Bind(wxEVT_MENU, [this](wxCommandEvent&) {
-            Close();
-            }, wxID_EXIT);
-    }
-#endif // __APPLE__
-}
 
 void MainFrame::update_menubar()
 {
-    if (wxGetApp().is_gcode_viewer())
-        return;
-
-    const bool is_fff = plater()->printer_technology() == ptFFF;
-
-    m_changeable_menu_items[miExport]       ->SetItemLabel((is_fff ? _L("Export &G-code")         : _L("E&xport"))        + dots    + "\tCtrl+G");
-    //m_changeable_menu_items[miSend]         ->SetItemLabel((is_fff ? _L("S&end G-code")           : _L("S&end to print")) + dots    + "\tCtrl+Shift+G");
-
-    m_changeable_menu_items[miMaterialTab]  ->SetItemLabel((is_fff ? _L("&Filament Settings Tab") : _L("Mate&rial Settings Tab"))   + "\tCtrl+3");
-    m_changeable_menu_items[miMaterialTab]  ->SetBitmap(*get_bmp_bundle(is_fff ? "spool"   : "resin"));
-
-    //m_changeable_menu_items[miPrinterTab]   ->SetBitmap(*get_bmp_bundle(is_fff ? "printer" : "sla_printer"));
+    // Nothing left to relabel. This retitled menu items between their FFF and SLA
+    // wordings ("Export G-code"/"Export", "Filament"/"Material Settings Tab"). The
+    // Export item lived in the File menu, which is gone, and the Filament/Printer
+    // items belong to windowMenu, which is built but never appended to the menubar.
+    //
+    // It indexed m_changeable_menu_items by the MenuItems enum (miExport = 0 ...
+    // miPrinterTab = 3), relying on the File menu pushing the first two entries.
+    // With those gone the vector held two elements and [miMaterialTab] read past
+    // the end -- a segfault at startup, via Plater::set_printer_technology().
+    //
+    // This fork is FFF-only (M5 / M5C), so there is no SLA wording to switch to.
 }
 
 #if 0

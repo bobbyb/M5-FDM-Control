@@ -62,6 +62,10 @@ public:
 	void activate(bool active);
 
 	void setOfflineStatus();
+
+	// Public entry to the "Start Printing" flow, so the File menu can drive the
+	// same path as the button rather than duplicating it.
+	void startPrintFlow();
 private:
 	void initUI();
 	void initTimer();

@@ -68,7 +68,6 @@ namespace Slic3r {
 			void SetPrintTab(wxBookCtrlBase* tabControl) { m_pPrintTab = tabControl; };
 			void setMsgEntrenceRedPointStatus(bool hasUnread);
 			void setMsgItemRedPointStatus(int officicalNews,int printerNews);
-			wxMenu* m_calib_menu = nullptr;
 
 			DECLARE_EVENT_TABLE()
 

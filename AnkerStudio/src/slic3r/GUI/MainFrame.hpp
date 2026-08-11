@@ -155,19 +155,6 @@ class MainFrame : public DPIFrame
     // add by allen for ankerCfgDlg
     void bind_diff_dialog_ankertab();
 
-    // MenuBar items changeable in respect to printer technology 
-    enum MenuItems
-    {                   //   FFF                  SLA
-        miExport = 0,   // Export G-code        Export
-        miSend,         // Send G-code          Send to print
-        miMaterialTab,  // Filament Settings    Material Settings
-        miPrinterTab,   // Different bitmap for Printer Settings
-    };
-
-    // vector of a MenuBar items changeable in respect to printer technology 
-    std::vector<wxMenuItem*> m_changeable_menu_items;
-    wxMenu* m_calibration_menu = nullptr;
-
     wxFileHistory m_recent_projects;
 
     enum class ESettingsLayout
@@ -267,7 +254,6 @@ public:
     // Called from wxEVT_ACTIVATE, as wxEVT_CREATE was not reliable (bug in wxWidgets?).
     void        register_win32_callbacks();
     void        init_menubar_as_editor();
-    void        init_menubar_as_gcodeviewer();
     void        update_menubar();
     // Open item in menu by menu and item name (in actual language)
     void        open_menubar_item(const wxString& menu_name,const wxString& item_name);

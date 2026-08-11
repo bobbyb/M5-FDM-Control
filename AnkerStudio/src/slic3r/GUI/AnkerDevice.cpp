@@ -829,6 +829,13 @@ void AnkerDevice::switchDevicePage(const std::string& deviceSn)
 	showDevice(m_currentDeviceId);
 	m_pNavBarWidget->switchTabFromSn(deviceSn);
 }
+bool AnkerDevice::startPrintFlow()
+{
+    if (!m_pCurrentDeviceWidget)
+        return false;
+    return m_pCurrentDeviceWidget->startPrintFlow();
+}
+
 void AnkerDevice::activate(bool active)
 {
 	if (m_pCurrentDeviceWidget)
@@ -2759,6 +2766,14 @@ void AnkerDeviceControl::showMsgFrame(const NetworkMsg& msg)
 		m_halfDialog->ShowAnker(PartialModal_OK);
 	}
 	m_halfDialog->Show(false);
+}
+
+bool AnkerDeviceControl::startPrintFlow()
+{
+    if (!m_pStatusWidget)
+        return false;
+    m_pStatusWidget->startPrintFlow();
+    return true;
 }
 
 void AnkerDeviceControl::activate(bool active)

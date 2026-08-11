@@ -1392,6 +1392,12 @@ void AnkerTaskPanel::OnSize(wxSizeEvent& event)
     Refresh();
 }
 
+void AnkerTaskPanel::startPrintFlow()
+{
+    wxCommandEvent evt(wxEVT_BUTTON);
+    OnNewBtn(evt);
+}
+
 void AnkerTaskPanel::OnNewBtn(wxCommandEvent& event)
 {
     DeviceObjectBasePtr deviceObj = CurDevObject(m_currentDeviceSn);

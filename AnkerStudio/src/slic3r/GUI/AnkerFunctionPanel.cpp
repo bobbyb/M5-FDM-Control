@@ -289,13 +289,6 @@ namespace Slic3r {
 						evt.SetId(iPageInx);
 						wxPostEvent(m_pPrintTab, evt);
 					}
-					//disable calibration if "Device" selected
-					if (m_calib_menu) {
-						bool enable = pCombinBtn->GetText() == _L("Device") ? !pCombinBtn->GetSelected() : true;
-						for (auto item : m_calib_menu->GetMenuItems()) {
-							item->Enable(enable);
-						}
-					}
 				});
 			}	
 

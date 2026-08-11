@@ -228,6 +228,10 @@ public:
 
 	void updateWindowDisplay(wxUpdateUIEvent& event);
 	void setNozzleMaxTemp(int temp);
+
+	// Opens the G-code import dialog for this device -- the same flow as the
+	// "Start Printing" button. Returns false if there is no task panel yet.
+	bool startPrintFlow();
 protected:
 	void initUi();
 	void OnShow(wxShowEvent& event);
@@ -271,6 +275,11 @@ public:
 	void switchDevicePage(const std::string& deviceSn);
 
 	void activate(bool active);
+
+	// Opens the G-code import dialog for the currently shown device. Drives the
+	// same path as the "Start Printing" button, so the File menu and the button
+	// stay in step. False when no device is selected.
+	bool startPrintFlow();
 
 protected:
 	void updateDeviceStatus(const std::string& sn, AnkerNet::aknmt_command_type_e type);
