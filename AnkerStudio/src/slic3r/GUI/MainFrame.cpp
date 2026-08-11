@@ -1411,26 +1411,12 @@ GalleryDialog* MainFrame::gallery_dialog()
 
 void MainFrame::update_title()
 {
+    // The title used to be prefixed with the project file name and a "*" dirty
+    // marker. There are no projects to open, name or dirty, so the title is just
+    // the application name.
     wxString title = wxEmptyString;
-    if (m_plater != nullptr) {
-        // m_plater->get_project_filename() produces file name including path, but excluding extension.
-        // Don't try to remove the extension, it would remove part of the file name after the last dot!
-        wxString project = from_path(into_path(m_plater->get_project_filename()).filename());
-//        wxString dirty_marker = (!m_plater->model().objects.empty() && m_plater->is_project_dirty()) ? "*" : "";
-        wxString dirty_marker = m_plater->is_project_dirty() ? "*" : "";
-        if (!dirty_marker.empty() || !project.empty()) {
-            if (!dirty_marker.empty() && project.empty())
-                project = _L("Untitled");
-            title = dirty_marker + project + " - ";
-        }
-    }
 
-    std::string build_id;
-#ifdef JAPAN_OPEN
-    build_id = wxGetApp().is_editor() ? "M5 FDM Control" : "M5 FDM Control G-code Viewer";
-#else
-    build_id = wxGetApp().is_editor() ? "M5 FDM Control" : "M5 FDM Control G-code Viewer";
-#endif
+    std::string build_id = "M5 FDM Control";
 
     size_t 		idx_plus = build_id.find('+');
     if (idx_plus != build_id.npos) {
@@ -3079,9 +3065,10 @@ void MainFrame::init_menubar_as_editor()
     // View menu removed: it drove the 3D scene (view angles, object labels).
     wxMenu* viewMenu = nullptr;
 
-    // Settings menu
+    // Settings menu. Deliberately NOT gated on m_plater: it holds language
+    // switching and the OTA check, which outlive the slicer.
     wxMenu* settingsMenu = nullptr;
-    if (m_plater) {
+    {
         settingsMenu = new wxMenu();
         wxMenu* languageMenu = new  wxMenu();
         //wxLanguage::wxLANGUAGE_CHINESE_CHINA = 130
@@ -3093,26 +3080,26 @@ void MainFrame::init_menubar_as_editor()
         if (wxLanguage::wxLANGUAGE_ENGLISH == type) {
             append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languageen"), _L("Switch language to English"),
                 [this](wxCommandEvent&) {  selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_English); },
-                iconPath, nullptr, [&]() {return !m_plater->background_process_running(); }, this);
+                iconPath, nullptr, []() { return true; }, this);
         }
         else {
             append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languageen"), _L("Switch language to English"),
                 [this](wxCommandEvent&) {
                     selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_English);
-                }, "", nullptr, [&]() {return !m_plater->background_process_running(); },this);
+                }, "", nullptr, []() { return true; },this);
         }
 
         if (wxLanguage::wxLANGUAGE_JAPANESE_JAPAN == type ||
             wxLanguage::wxLANGUAGE_JAPANESE == type) {
             append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languagejp"), _L("Switch language to Japanese"),
                 [this](wxCommandEvent&) { selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_Japanese); },
-                iconPath, nullptr, [&]() {return !m_plater->background_process_running(); }, this);
+                iconPath, nullptr, []() { return true; }, this);
         }
         else {
             append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languagejp"), _L("Switch language to Japanese"),
                 [this](wxCommandEvent&) {
                     selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_Japanese);
-                }, "", nullptr, [&]() {return !m_plater->background_process_running(); },this);
+                }, "", nullptr, []() { return true; },this);
         }
 
         //add by Samuel, enable/disable muli-language by config 
@@ -3124,13 +3111,13 @@ void MainFrame::init_menubar_as_editor()
             {
                 append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languagecn"), _L("Switch language to Chinese"),
                     [this](wxCommandEvent&) { selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_Chinese); },
-                    iconPath, nullptr, [&]() {return !m_plater->background_process_running(); }, this);
+                    iconPath, nullptr, []() { return true; }, this);
             }
             else {
                 append_menu_item(languageMenu, wxID_ANY, _L("common_menu_settings_languagecn"), _L("Switch language to Chinese"),
                     [this](wxCommandEvent&) {
                         selectLanguage(GUI_App::AnkerLanguageType::AnkerLanguageType_Chinese);
-                    },"", nullptr, [&]() {return !m_plater->background_process_running(); },this);
+                    },"", nullptr, []() { return true; },this);
             }
         }
 
