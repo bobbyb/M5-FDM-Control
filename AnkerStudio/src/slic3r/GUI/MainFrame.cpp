@@ -1007,41 +1007,9 @@ void MainFrame::setUserInfoForSentry()
 
 
 void MainFrame::createAnkerCfgDlg() {
-    if (!m_ankerCfgDlg) {
-        ANKER_LOG_INFO << "createAnkerCfgDlg enter";
-        m_ankerCfgDlg = new AnkerConfigDlg(this);
-
-        // add by allen for ankerCfgDlg
-        m_ankerCfgDlg->Bind(wxCUSTOMEVT_UPDATE_PARAMETERS_PANEL, [this](wxCommandEvent& event) {
-            wxCommandEvent evt = wxCommandEvent(wxCUSTOMEVT_ANKER_RELOAD_DATA);
-            evt.SetEventObject(this);
-            ProcessEvent(evt);
-            });
-
-        // add by allen for ankerCfgDlg
-        auto pAnkerTabPrint = new AnkerTabPrint(m_ankerCfgDlg->m_rightPanel);
-        pAnkerTabPrint->Bind(wxCUSTOMEVT_ANKER_SAVE_PRESET, [this](wxCommandEvent& event) {
-            wxCommandEvent evt = wxCommandEvent(wxCUSTOMEVT_ANKER_RELOAD_DATA);
-            evt.SetEventObject(this);
-            ProcessEvent(evt);
-            });
-        m_ankerCfgDlg->AddCreateTab(pAnkerTabPrint, "cog");
-        m_ankerCfgDlg->AddCreateTab(new AnkerTabFilament(m_ankerCfgDlg->m_rightPanel), "spool");
-        m_ankerCfgDlg->AddCreateTab(new AnkerTabPrinter(m_ankerCfgDlg->m_rightPanel),
-            wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF ? "printer" : "sla_printer");
-        // we must call this functions as follows after AnkerConfigDialog created
-        if (wxGetApp().is_editor())
-            wxGetApp().load_current_presets();
-             // Save the active profiles as a "saved into project".
-            wxGetApp().update_saved_preset_from_current_preset();
-            if (wxGetApp().plater_ != nullptr) {
-                // Save the names of active presets and project specific config into ProjectDirtyStateManager.
-                wxGetApp().plater_->reset_project_dirty_initial_presets();
-                // Update Project dirty state, update application title bar.
-                wxGetApp().plater_->update_project_dirty_from_presets();
-            }
-            select_tab(size_t(0));
-    }
+    // The Anker config dialog was purely print/filament/printer preset editing,
+    // which this fork does not do. Nothing is constructed, so m_ankerCfgDlg stays
+    // null and every use of it elsewhere is already null-guarded and inert.
 }
 
 void MainFrame::OnDocumentLoaded(wxWebViewEvent& evt)
@@ -2589,12 +2557,12 @@ void MainFrame::InitAnkerDevice()
 
 void MainFrame::create_preset_tabs()
 {
-    add_created_tab(new TabPrint(m_tabpanel), "cog");
-    add_created_tab(new TabFilament(m_tabpanel), "spool");
-    add_created_tab(new TabSLAPrint(m_tabpanel), "cog");
-    add_created_tab(new TabSLAMaterial(m_tabpanel), "resin");    add_created_tab(new TabPrinter(m_tabpanel), 
-        wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF ? "printer" : "sla_printer");
-        
+    // The five preset tabs (print / filament / SLA print / SLA material / printer)
+    // are gone; nothing is added to m_tabpanel, so tabs_list stays empty and
+    // get_tab() returns null for every type.
+    //
+    // Despite its name this function survives because it also builds the Device
+    // widget and binds the account, OTA and HTTP-error handlers below.
     InitAnkerDevice();
 
     Bind(wxCUSTOMEVT_GET_COMMENT_FLAGS, [this](wxCommandEvent& event) {
