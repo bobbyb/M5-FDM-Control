@@ -243,17 +243,8 @@ public:
     bool        is_last_input_file() const  { return !m_qs_last_input_file.IsEmpty(); }
     bool        is_dlg_layout() const { return m_layout == ESettingsLayout::Dlg; }
 
-//    void        quick_slice(const int qs = qsUndef);
-    void        reslice_now();
-    void        repair_stl();
-    void        export_config();
     // Query user for the config file and open it.
-    void        load_config_file();
     // Open a config file. Return true if loaded.
-    bool        load_config_file(const std::string &path);
-    void        export_configbundle(bool export_physical_printers = false);
-    void        load_configbundle(wxString file = wxEmptyString);
-    void        load_config(const DynamicPrintConfig& config);
     // Select tab in m_tabpanel
     // When tab == -1, will be selected last selected tab
     // add by allen for ankerCfgDlg
@@ -261,10 +252,7 @@ public:
     void        setTabMode(TabMode mode) { m_currentTabMode = mode; }
     void        showAnkerCfgDlg();
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
-    void        on_config_changed(DynamicPrintConfig* cfg) const ;
 
-    bool can_save() const;
-    bool can_save_as() const;
 
     void        add_to_recent_projects(const wxString& filename);
     void        clearStarCommentData();

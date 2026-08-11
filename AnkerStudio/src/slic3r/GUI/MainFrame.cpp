@@ -1352,19 +1352,8 @@ void MainFrame::shutdown(bool restart)
         m_ankerCfgDlg->CloseDlg();
     }
 
-    if (m_plater != nullptr) {
-        m_plater->get_ui_job_worker().cancel_all();
-
-        // Unbinding of wxWidgets event handling in canvases needs to be done here because on MAC,
-        // when closing the application using Command+Q, a mouse event is triggered after this lambda is completed,
-        // causing a crash
-        m_plater->unbind_canvas_event_handlers();
-
-        // Cleanup of canvases' volumes needs to be done here or a crash may happen on some Linux Debian flavours
-        // see: https://github.com/prusa3d/PrusaSlicer/issues/3964
-        m_plater->reset_canvas_volumes();
-        m_plater->shutdown();
-    }
+    // Plater teardown (job worker, canvas event unbinding, canvas volumes) went
+    // with the 3D canvas -- there are no canvases to unbind or clear.
 
     // Weird things happen as the Paint messages are floating around the windows being destructed.
     // Avoid the Paint messages by hiding the main window.
@@ -1376,13 +1365,7 @@ void MainFrame::shutdown(bool restart)
         // call Close() to trigger call to lambda defined into GUI_App::persist_window_geometry()
         m_settings_dialog.Close();
 
-    if (m_plater != nullptr) {
-        // Stop the background thread (Windows and Linux).
-        // Disconnect from a 3DConnextion driver (OSX).
-        m_plater->get_mouse3d_controller().shutdown();
-        // Store the device parameter database back to appconfig.
-        m_plater->get_mouse3d_controller().save_config(*wxGetApp().app_config);
-    }
+    // The 3DConnexion mouse controller drove the 3D canvas; it goes with it.
 
     // Stop the background thread of the removable drive manager, so that no new updates will be sent to the Plater.
     wxGetApp().removable_drive_manager()->shutdown();
@@ -2576,18 +2559,7 @@ bool MainFrame::isActiveAndShownAnkerTab(AnkerTab* tab)
 }
 
 
-bool MainFrame::can_save() const
-{
-    return (m_plater != nullptr) &&
-        !m_plater->canvas3D()->get_gizmos_manager().is_in_editing_mode(false) &&
-        m_plater->is_project_dirty();
-}
 
-bool MainFrame::can_save_as() const
-{
-    return (m_plater != nullptr) &&
-        !m_plater->canvas3D()->get_gizmos_manager().is_in_editing_mode(false);
-}
 
 
 
@@ -3475,375 +3447,22 @@ void MainFrame::update_menubar()
 
 #if 0
 // To perform the "Quck Slice", "Quick Slice and Save As", "Repeat last Quick Slice" and "Slice to SVG".
-void MainFrame::quick_slice(const int qs)
-{
-//     my $progress_dialog;
-    wxString input_file;
-//  eval
-//     {
-    // validate configuration
-	DynamicPrintConfig tempConfig;
-    //update by alves, cover right parameters data to the config if fff_print then process
-	DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
-    if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF)
-    {	
-        Slic3r::GUI::wxGetApp().plater()->sidebarnew().updatePreset(config);
-    }
-	       
-    auto valid = config.validate();
-    if (! valid.empty()) {
-        show_error(this, valid);
-        return;
-    }
-
-    // select input file
-    if (!(qs & qsReslice)) {
-        wxFileDialog dlg(this, _L("Choose a file to slice (STL/OBJ/AMF/3MF/AKPRO):"),
-            wxGetApp().app_config->get_last_dir(), "",
-            file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        input_file = dlg.GetPath();
-        if (!(qs & qsExportSVG))
-            m_qs_last_input_file = input_file;
-    }
-    else {
-        if (m_qs_last_input_file.IsEmpty()) {
-            //wxMessageDialog dlg(this, _L("No previously sliced file."),
-            MessageDialog dlg(this, _L("No previously sliced file."),
-                _L("Error"), wxICON_ERROR | wxOK);
-            dlg.ShowModal();
-            return;
-        }
-        if (std::ifstream(m_qs_last_input_file.ToUTF8().data())) {
-            //wxMessageDialog dlg(this, _L("Previously sliced file (")+m_qs_last_input_file+_L(") not found."),
-            MessageDialog dlg(this, _L("Previously sliced file (")+m_qs_last_input_file+_L(") not found."),
-                _L("File Not Found"), wxICON_ERROR | wxOK);
-            dlg.ShowModal();
-            return;
-        }
-        input_file = m_qs_last_input_file;
-    }
-    auto input_file_basename = get_base_name(input_file);
-    wxGetApp().app_config->update_skein_dir(get_dir_name(input_file));
-
-    auto bed_shape = Slic3r::Polygon::new_scale(config.option<ConfigOptionPoints>("bed_shape")->values);
-//     auto print_center = Slic3r::Pointf->new_unscale(bed_shape.bounding_box().center());
-// 
-//     auto sprint = new Slic3r::Print::Simple(
-//         print_center = > print_center,
-//         status_cb = > [](int percent, const wxString& msg) {
-//         m_progress_dialog->Update(percent, msg+"…");
-//     });
-
-    // keep model around
-    auto model = Slic3r::Model::read_from_file(input_file.ToUTF8().data());
-
-//     sprint->apply_config(config);
-//     sprint->set_model(model);
-
-    // Copy the names of active presets into the placeholder parser.
-//     wxGetApp().preset_bundle->export_selections(sprint->placeholder_parser);
-
-    // select output file
-    wxString output_file;
-    if (qs & qsReslice) {
-        if (!m_qs_last_output_file.IsEmpty())
-            output_file = m_qs_last_output_file;
-    } 
-    else if (qs & qsSaveAs) {
-        // The following line may die if the output_filename_format template substitution fails.
-        wxFileDialog dlg(this, format_wxstr(_L("Save %s file as:"), ((qs & qsExportSVG) ? _L("SVG") : _L("G-code"))),
-            wxGetApp().app_config->get_last_output_dir(get_dir_name(output_file)), get_base_name(input_file), 
-            qs & qsExportSVG ? file_wildcards(FT_SVG) : file_wildcards(FT_GCODE),
-            wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        output_file = dlg.GetPath();
-        if (!(qs & qsExportSVG))
-            m_qs_last_output_file = output_file;
-        wxGetApp().app_config->update_last_output_dir(get_dir_name(output_file));
-    } 
-    else if (qs & qsExportPNG) {
-        wxFileDialog dlg(this, _L("Save zip file as:"),
-            wxGetApp().app_config->get_last_output_dir(get_dir_name(output_file)),
-            get_base_name(output_file), "*.sl1", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        output_file = dlg.GetPath();
-    }
-
-    // show processbar dialog
-    m_progress_dialog = new wxProgressDialog(_L("Slicing") + dots,
-        // TRN ProgressDialog on reslicing: "input file basename"
-        format_wxstr(_L("Processing %s"), (input_file_basename + dots)),
-        100, nullptr, wxPD_AUTO_HIDE);
-    m_progress_dialog->Pulse();
-    {
-//         my @warnings = ();
-//         local $SIG{ __WARN__ } = sub{ push @warnings, $_[0] };
-
-//         sprint->output_file(output_file);
-//         if (export_svg) {
-//             sprint->export_svg();
-//         }
-//         else if(export_png) {
-//             sprint->export_png();
-//         }
-//         else {
-//             sprint->export_gcode();
-//         }
-//         sprint->status_cb(undef);
-//         Slic3r::GUI::warning_catcher($self)->($_) for @warnings;
-    }
-    m_progress_dialog->Destroy();
-    m_progress_dialog = nullptr;
-
-    auto message = format(_L("%1% was successfully sliced."), input_file_basename);
-//     wxTheApp->notify(message);
-    //wxMessageDialog(this, message, _L("Slicing Done!"), wxOK | wxICON_INFORMATION).ShowModal();
-    MessageDialog(this, message, _L("Slicing Done!"), wxOK | wxICON_INFORMATION).ShowModal();
-//     };
-//     Slic3r::GUI::catch_error(this, []() { if (m_progress_dialog) m_progress_dialog->Destroy(); });
-}
 #endif
 
-void MainFrame::reslice_now()
-{
-    if (m_plater)
-    {
-        //update by alves
-        //m_plater->reslice();
-        m_plater->onSliceNow();
-    }
-}
 
-void MainFrame::repair_stl()
-{
-    wxString input_file;
-    {
-        wxFileDialog dlg(this, _L("Select the STL file to repair:"),
-            wxGetApp().app_config->get_last_dir(), "",
-            file_wildcards(FT_STL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        input_file = dlg.GetPath();
-    }
 
-    wxString output_file = input_file;
-    {
-        wxFileDialog dlg( this, L("Save OBJ file (less prone to coordinate errors than STL) as:"),
-                                        get_dir_name(output_file), get_base_name(output_file, ".obj"),
-                                        file_wildcards(FT_OBJ), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        output_file = dlg.GetPath();
-    }
-
-    Slic3r::TriangleMesh tmesh;
-    tmesh.ReadSTLFile(input_file.ToUTF8().data());
-    tmesh.WriteOBJFile(output_file.ToUTF8().data());
-    Slic3r::GUI::show_info(this, _L("Your file was repaired."), _L("Repair"));
-}
-
-void MainFrame::export_config()
-{
-    // Generate a cummulative configuration for the selected print, filaments and printer.
-    //update by alves, cover right parameters data to the config if fff_print then process
-	DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
-    if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF)
-    {		
-        Slic3r::GUI::wxGetApp().plater()->sidebarnew().updatePreset(config);
-    }	
-        
-    // Validate the cummulative configuration.
-    auto valid = config.validate();
-    if (! valid.empty()) {
-        show_error(this, valid);
-        return;
-    }
-    // Ask user for the file name for the config file.
-    std::string dirName = get_dir_name(m_last_config);
-    std::string baseName = get_base_name(m_last_config);
-    std::string lastName = wxGetApp().app_config->get_last_dir();
-
-    wxString wxDirName = wxString::FromUTF8(dirName);
-    wxString wxBaseName = wxString::FromUTF8(baseName);
-    wxString wxLastName = wxString::FromUTF8(lastName);
-
-    wxFileDialog dlg(this, _L("Save configuration as:"),
-        !m_last_config.IsEmpty() ? wxDirName : wxLastName,
-        !m_last_config.IsEmpty() ? wxBaseName : "config.ini",
-        file_wildcards(FT_INI), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-    wxString file;
-    if (dlg.ShowModal() == wxID_OK)
-        file = dlg.GetPath();
-    if (!file.IsEmpty()) {
-        wxGetApp().app_config->update_config_dir(get_dir_name(file));
-        m_last_config = file;
-        config.save(file.ToUTF8().data());
-    }
-}
 
 // Load a config file containing a Print, Filament & Printer preset.
-void MainFrame::load_config_file()
-{
-    if (!wxGetApp().check_and_save_current_preset_changes(_L("Loading of a configuration file"), "", false))
-        return;
-    wxFileDialog dlg(this, _L("Select configuration to load:"),
-        !m_last_config.IsEmpty() ? get_dir_name(m_last_config) : wxGetApp().app_config->get_last_dir(),
-        "config.ini", "INI files (*.ini, *.gcode)|*.ini;*.INI;*.gcode;*.g", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	wxString file;
-    if (dlg.ShowModal() == wxID_OK)
-        file = dlg.GetPath();
-    if (! file.IsEmpty() && this->load_config_file(file.ToUTF8().data())) {
-        wxGetApp().app_config->update_config_dir(get_dir_name(file));
-        m_last_config = file;
-    }
-}
 
 // Load a config file containing a Print, Filament & Printer preset from command line.
-bool MainFrame::load_config_file(const std::string &path)
-{
-    try {
-        ConfigSubstitutions config_substitutions = wxGetApp().preset_bundle->load_config_file(path, ForwardCompatibilitySubstitutionRule::Enable);
-        if (!config_substitutions.empty())
-            show_substitutions_info(config_substitutions, path);
-    } catch (const std::exception &ex) {
-        show_error(this, ex.what());
-        return false;
-    }
 
-    m_plater->check_selected_presets_visibility(ptFFF);
-    wxGetApp().load_current_presets();
-    return true;
-}
-
-void MainFrame::export_configbundle(bool export_physical_printers /*= false*/)
-{
-    if (!wxGetApp().check_and_save_current_preset_changes(_L("Exporting configuration bundle"),
-                                                          _L("Some presets are modified and the unsaved changes will not be exported into configuration bundle."), false, true))
-        return;
-    // validate current configuration in case it's dirty
-    //update by alves, cover right parameters data to the config if fff_print then process
-	DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
-    if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF)
-    {		
-        Slic3r::GUI::wxGetApp().plater()->sidebarnew().updatePreset(config);        
-    }	        
-
-    auto err = config.validate();
-    if (! err.empty()) {
-        show_error(this, err);
-        return;
-    }
-    // Ask user for a file name.
-    wxFileDialog dlg(this, _L("Save presets bundle as:"),
-        !m_last_config.IsEmpty() ? get_dir_name(m_last_config) : wxGetApp().app_config->get_last_dir(),
-        SLIC3R_APP_KEY "_config_bundle.ini",
-        file_wildcards(FT_INI), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-    wxString file;
-    if (dlg.ShowModal() == wxID_OK)
-        file = dlg.GetPath();
-    if (!file.IsEmpty()) {
-        // Export the config bundle.
-        wxGetApp().app_config->update_config_dir(get_dir_name(file));
-        try {
-            wxGetApp().preset_bundle->export_configbundle(file.ToUTF8().data(), false, export_physical_printers);
-        } catch (const std::exception &ex) {
-			show_error(this, ex.what());
-        }
-    }
-}
 
 // Loading a config bundle with an external file name used to be used
 // to auto - install a config bundle on a fresh user account,
 // but that behavior was not documented and likely buggy.
-void MainFrame::load_configbundle(wxString file/* = wxEmptyString, const bool reset_user_profile*/)
-{
-    if (!wxGetApp().check_and_save_current_preset_changes(_L("Loading of a configuration bundle"), "", false))
-        return;
-    if (file.IsEmpty()) {
-        wxFileDialog dlg(this, _L("Select configuration to load:"),
-            !m_last_config.IsEmpty() ? get_dir_name(m_last_config) : wxGetApp().app_config->get_last_dir(),
-            "config.ini", file_wildcards(FT_INI), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (dlg.ShowModal() != wxID_OK)
-            return;
-        file = dlg.GetPath();
-	}
-
-    wxGetApp().app_config->update_config_dir(get_dir_name(file));
-
-    size_t presets_imported = 0;
-    PresetsConfigSubstitutions config_substitutions;
-    try {
-        // Report all substitutions.
-        std::tie(config_substitutions, presets_imported) = wxGetApp().preset_bundle->load_configbundle(
-            file.ToUTF8().data(), PresetBundle::LoadConfigBundleAttribute::SaveImported, ForwardCompatibilitySubstitutionRule::Enable);
-    } catch (const std::exception &ex) {
-        show_error(this, ex.what());
-        return;
-    }
-
-    if (! config_substitutions.empty())
-        show_substitutions_info(config_substitutions);
-
-    // Load the currently selected preset into the GUI, update the preset selection box.
-	wxGetApp().load_current_presets();
-
-    const auto message = wxString::Format(_L("%d presets successfully imported."), presets_imported);
-    Slic3r::GUI::show_info(this, message, wxString("Info"));
-}
 
 // Load a provied DynamicConfig into the Print / Filament / Printer tabs, thus modifying the active preset.
 // Also update the plater with the new presets.
-void MainFrame::load_config(const DynamicPrintConfig& config)
-{
-	PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
-	const auto       *opt_printer_technology = config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-	if (opt_printer_technology != nullptr && opt_printer_technology->value != printer_technology) {
-		printer_technology = opt_printer_technology->value;
-		this->plater()->set_printer_technology(printer_technology);
-	}
-#if 0
-	for (auto tab : wxGetApp().tabs_list)
-		if (tab->supports_printer_technology(printer_technology)) {
-			if (tab->type() == Slic3r::Preset::TYPE_PRINTER)
-				static_cast<TabPrinter*>(tab)->update_pages();
-			tab->load_config(config);
-		}
-    if (m_plater)
-        m_plater->on_config_change(config);
-#else
-	// Load the currently selected preset into the GUI, update the preset selection box.
-    //FIXME this is not quite safe for multi-extruder printers,
-    // as the number of extruders is not adjusted for the vector values.
-    // (see PresetBundle::update_multi_material_filament_presets())
-    // Better to call PresetBundle::load_config() instead?
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab : wxGetApp().tabs_list)
-        if (tab->supports_printer_technology(printer_technology)) {
-            // Only apply keys, which are present in the tab's config. Ignore the other keys.
-			for (const std::string &opt_key : tab->get_config()->diff(config))
-				// Ignore print_settings_id, printer_settings_id, filament_settings_id etc.
-				if (! boost::algorithm::ends_with(opt_key, "_settings_id"))
-					tab->get_config()->option(opt_key)->set(config.option(opt_key));
-        }
-#endif
-
-    // add by allen for ankerCfgDlg
-    for (auto tab : wxGetApp().ankerTabsList)
-        if (tab->supports_printer_technology(printer_technology)) {
-            // Only apply keys, which are present in the tab's config. Ignore the other keys.
-            for (const std::string& opt_key : tab->get_config()->diff(config))
-                // Ignore print_settings_id, printer_settings_id, filament_settings_id etc.
-                if (!boost::algorithm::ends_with(opt_key, "_settings_id"))
-                    tab->get_config()->option(opt_key)->set(config.option(opt_key));
-        }
-
-    wxGetApp().load_current_presets();
-#endif
-}
 
 
 
@@ -3937,11 +3556,6 @@ void MainFrame::on_maximize(wxMaximizeEvent& event)
 }
 
 
-void MainFrame::on_config_changed(DynamicPrintConfig* config) const
-{
-    if (m_plater)
-        m_plater->on_config_change(*config); // propagate config change events to the plater
-}
 
 void MainFrame::add_to_recent_projects(const wxString& filename)
 {

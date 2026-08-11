@@ -1016,13 +1016,13 @@ void GUI_App::post_init()
         // We need to decide what to do about loading of separate presets (just print preset, just filament preset etc).
         // As of now only the full configs are supported here.
         if (!m_print_config.empty())
-            this->gui->mainframe->load_config(m_print_config);
+            ; // config loading removed with the slicer
 #endif
         if (! this->init_params->load_configs.empty())
             // Load the last config to give it a name at the UI. The name of the preset may be later
             // changed by loading an AMF or 3MF.
             //FIXME this is not strictly correct, as one may pass a print/filament/printer profile here instead of a full config.
-            this->mainframe->load_config_file(this->init_params->load_configs.back());
+            ; // config loading removed with the slicer
         // If loading a 3MF file, the config is loaded from the last one.
         if (!this->init_params->input_files.empty()) {
 #if 1 // #ysFIXME_delete_after_test_of
@@ -1052,7 +1052,7 @@ void GUI_App::post_init()
             }
         }
         if (! this->init_params->extra_config.empty())
-            this->mainframe->load_config(this->init_params->extra_config);
+            ; // config loading removed with the slicer
     }
 
     // show "Did you know" notification

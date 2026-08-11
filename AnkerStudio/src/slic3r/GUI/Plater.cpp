@@ -1960,7 +1960,7 @@ namespace Slic3r {
                 int res = wxID_NO;
                 if (dirty_state.is_dirty()) {
                     MainFrame* mainframe = wxGetApp().mainframe;
-                    if (mainframe->can_save_as()) {
+                    if (false) {
                         wxString suggested_project_name;
                         wxString project_name = suggested_project_name = get_project_filename(".3mf");
                         if (suggested_project_name.IsEmpty()) {
@@ -2406,7 +2406,7 @@ namespace Slic3r {
                             }
                         }
 
-                        wxGetApp().mainframe->on_config_changed(&config);
+                        ; // removed with the slicer
 
                         sidebarnew->GetGlobalParameterPanel()->checkUIData(&config);
                     });

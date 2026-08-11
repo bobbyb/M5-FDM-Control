@@ -2030,7 +2030,7 @@ void AnkerTabPrint::update()
         if (!wxGetApp().plater()->inside_snapshot_capture())
             wxGetApp().obj_list()->update_and_show_object_settings_item();
 
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
     }
 }
 
@@ -2549,7 +2549,7 @@ void AnkerTabFilament::update()
     m_update_cnt--;
 
     if (m_update_cnt == 0)
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
 }
 
 void AnkerTabFilament::clear_pages()
@@ -3562,7 +3562,7 @@ void AnkerTabPrinter::update()
     Layout();
 
     if (m_update_cnt == 0)
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
 }
 
 void AnkerTabPrinter::update_fff()
@@ -4499,7 +4499,7 @@ void AnkerTab::save_preset(std::string name /*= ""*/, bool detach)
     m_presets->save_current_preset(name, detach);
     
     if (detach && m_type == Preset::TYPE_PRINTER)
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
 
     // Update compatible printers
     if (from_template && !edited_printer.empty()) {
@@ -5292,7 +5292,7 @@ wxSizer* AnkerTabPrint::create_substitutions_widget(wxWindow* parent)
     m_subst_manager.init(m_config, parent, grid_sizer);
     m_subst_manager.set_cb_edited_substitution([this]() {
         update_dirty();
-        wxGetApp().mainframe->on_config_changed(m_config); // invalidate print
+        ; // removed with the slicer // invalidate print
     });
     m_subst_manager.set_cb_hide_delete_all_btn([this]() {
         m_del_all_substitutions_btn->Hide();
@@ -5783,7 +5783,7 @@ void AnkerTabSLAMaterial::update()
 //     m_update_cnt--;
 //
 //     if (m_update_cnt == 0)
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
 }
 
 static void add_options_into_line(AnkerConfigOptionsGroupShp&optgroup,
@@ -5965,7 +5965,7 @@ void AnkerTabSLAPrint::update()
         if (!wxGetApp().plater()->inside_snapshot_capture())
             wxGetApp().obj_list()->update_and_show_object_settings_item();
 
-        wxGetApp().mainframe->on_config_changed(m_config);
+        ; // removed with the slicer
     }
 }
 

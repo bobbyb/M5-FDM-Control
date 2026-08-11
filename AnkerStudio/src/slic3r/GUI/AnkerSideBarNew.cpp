@@ -1613,7 +1613,7 @@ namespace Slic3r {
 
                 p->m_pAnkerModelParameterPanel->Bind(wxCUSTOMEVT_ANKER_BACKGROUND_PROCESS, [this](wxCommandEvent& event) {           
                     updateItemConfigInfo(event.GetInt(), event.GetString());
-                    wxGetApp().mainframe->on_config_changed(&wxGetApp().plater()->get_global_config());
+                    ; // removed with the slicer
                     if (object_list() != nullptr && object_list()->objects() != nullptr 
                         && !object_list()->objects()->empty()) {
                         p->m_pAnkerModelParameterPanel->checkUIData();
