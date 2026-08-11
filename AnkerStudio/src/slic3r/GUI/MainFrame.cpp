@@ -3429,24 +3429,6 @@ static wxMenu* generate_help_menu()
             
             }
             });
-    append_menu_item(helpMenu, wxID_ANY, _L("common_menu_help_termsofuse"), _L("Show terms of use"),
-        [](wxCommandEvent&) {
-            wxString url = wxString(Slic3r::UrlConfig::TermsOfServiceEnUrl);
-            if (MainFrame::currentSoftwareLanguageIsJapanese()) {
-                url = wxString(Slic3r::UrlConfig::TermsOfServiceJaUrl);
-            }
-
-            wxURI uri(url);
-            url = uri.BuildURI();
-
-            bool success = wxLaunchDefaultBrowser(url, wxBROWSER_NEW_WINDOW);
-            if (success) {
-            }
-            else {
-
-            }
-            
-            });
     append_menu_item(helpMenu, wxID_ANY, _L("common_menu_help_copyright"), _L("Show copyright information"),
         [](wxCommandEvent&) {
             wxPoint mfPoint = wxGetApp().mainframe->GetPosition();
@@ -3675,6 +3657,7 @@ void MainFrame::selectLanguage(GUI_App::AnkerLanguageType language)
         ankerNet->ResetLanguage(Country, Language);
     }
 }
+
 
 bool MainFrame::currentSoftwareLanguageIsJapanese()
 {
