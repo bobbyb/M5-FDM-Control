@@ -22,6 +22,7 @@ namespace Slic3r {
 		enum tabPanleType
 		{
 			type_devcie = 0,
+			type_details,
 			type_others
 		};
 
@@ -75,6 +76,7 @@ namespace Slic3r {
 			AnkerCombinButton* m_pHomeButton{ nullptr };
 			AnkerCombinButton* m_pLoginButton{ nullptr };
 			AnkerCombinButton* m_pPrintButton{ nullptr };
+			AnkerCombinButton* m_pDetailsButton{ nullptr };
 			wxBoxSizer* m_pSizer{nullptr};
 			wxBookCtrlBase* m_pPrintTab{nullptr};
 			//collection of all control function  page buttons

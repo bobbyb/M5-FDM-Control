@@ -340,6 +340,8 @@ public:
         sendGcode("M83");
         sendGcode("G1 E-" + std::to_string(stepLen) + " F180");
     }
+    void SendRawGcode(const std::string& gcode) override { sendGcode(gcode); }
+
     void setStopExtrusion() override
     {
         // No clean "abort current E move"; stop heating as a best-effort stop.

@@ -172,7 +172,13 @@ namespace Slic3r {
 			m_pSizer->Add(m_pPrintButton, 0, wxALL, 1);
 			m_pSizer->AddStretchSpacer();
 
+			m_pDetailsButton = new AnkerCombinButton(this, devcieBitmap, _L("Device Details"));
+			m_pDetailsButton->SetMinSize(AnkerSize(160, 35));
+			m_pDetailsButton->SetActieBitMap(devcieBitmap_actice);
+			m_pSizer->Insert(1, m_pDetailsButton, 0, wxALL, 1);
+
 			m_pTabBtnVec.push_back(m_pPrintButton);
+			m_pTabBtnVec.push_back(m_pDetailsButton);
 
 			m_pPrintButton->SetSelected(true);
 

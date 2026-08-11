@@ -281,6 +281,9 @@ public:
 	// stay in step. False when no device is selected.
 	bool startPrintFlow();
 
+	// Serial of the device currently shown, so other tabs can follow it.
+	std::string currentDeviceSn() const { return m_currentDeviceId; }
+
 protected:
 	void updateDeviceStatus(const std::string& sn, AnkerNet::aknmt_command_type_e type);
 	void updateZoffsetValue(const std::string& sn);

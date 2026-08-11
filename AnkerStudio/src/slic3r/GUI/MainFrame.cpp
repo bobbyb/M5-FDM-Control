@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "AnkerDeviceDetails.hpp"
 
 #include <wx/panel.h>
 #include <wx/notebook.h>
@@ -897,7 +898,12 @@ void MainFrame::initTabPanel() {
 
         // Device is the only tab now, so it is page 0 (it used to be page 1, behind
         // the plater). Slice is gone.
-        if (iSelectedPage == 0) {
+        if (iSelectedPage == 1) {
+            // Device Details follows whichever printer the Device tab has selected.
+            if (m_pDeviceDetails && m_pDeviceWidget)
+                m_pDeviceDetails->setCurrentDeviceSn(m_pDeviceWidget->currentDeviceSn());
+        }
+        else if (iSelectedPage == 0) {
             m_currentTabMode = TabMode::TAB_DEVICE;
             if (m_pMsgCentrePopWindow)
                 m_pMsgCentrePopWindow->Hide();
@@ -2326,6 +2332,11 @@ void MainFrame::InitAnkerDevice()
     if (m_pDeviceWidget) {
         m_printTabPanel->AddPage(m_pDeviceWidget, _L("Print"));
     }
+
+    // Device Details -- manual move / adjustments / raw G-code. Page index must
+    // match tabPanleType::type_details and the button order in AnkerFunctionPanel.
+    m_pDeviceDetails = new AnkerDeviceDetails(m_printTabPanel);
+    m_printTabPanel->AddPage(m_pDeviceDetails, _L("Device Details"));
 
     Bind(wxCUSTOMEVT_SWITCH_TO_PRINT_PAGE, [this](wxCommandEvent& event) {
         wxStringClientData* pData = static_cast<wxStringClientData*>(event.GetClientObject());

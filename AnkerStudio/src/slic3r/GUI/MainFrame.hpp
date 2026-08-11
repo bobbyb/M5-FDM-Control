@@ -47,6 +47,7 @@ class AnkerTabPresetComboBox;
 
 class PrintHostQueueDialog;
 class Plater;
+class AnkerDeviceDetails;
 class MainFrame;
 class PreferencesDialog;
 class GalleryDialog;
@@ -296,6 +297,7 @@ public:
 
     wxMenu*             m_pLoginMenu {nullptr};
     AnkerDevice*        m_pDeviceWidget{ nullptr };
+    AnkerDeviceDetails* m_pDeviceDetails{ nullptr };
 
     ANKER_ENVIR         m_currentEnvir = US_ENVIR;
     wxString            m_loginUrl = {wxString("https://community-qa.eufylife.com/passport-ct/?nocache=%s#/login")};

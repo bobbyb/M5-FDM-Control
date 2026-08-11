@@ -114,6 +114,11 @@ public:
     virtual void setDischargeExtrusion(int stepLen, int temperature, int nozzleNum = -1) = 0;
     virtual void setMaterialReturnExtrusion(int stepLen, int temperature, int nozzleNum = -1) = 0;
     virtual void setStopExtrusion() = 0;
+
+    // Run a raw Marlin G-code line on the printer (vendor commandType 1043).
+    // Public so the Device Details tab can drive jog/home/level and the manual
+    // G-code box through one channel. sendGcode() itself stays private.
+    virtual void SendRawGcode(const std::string& gcode) = 0;
     virtual int GetExtrusionValue() const = 0;
 
     virtual void setRequestGCodeInfo(const std::string& filepath) = 0;   

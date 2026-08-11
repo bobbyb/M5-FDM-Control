@@ -306,6 +306,10 @@ set(SLIC3R_GUI_SOURCES
 	GUI/AnkerWebView.hpp
     GUI/AnkerConfig.hpp	
     GUI/AnkerConfig.cpp	
+	GUI/AnkerDeviceDetails.cpp
+    GUI/AnkerDeviceDetails.hpp
+    GUI/AnkerMoveCommands.cpp
+    GUI/AnkerMoveCommands.hpp
 	GUI/AnkerDevice.cpp	
     GUI/AnkerDevice.hpp
     GUI/AnkerBtn.cpp
