@@ -3580,115 +3580,13 @@ void MainFrame::init_menubar_as_editor()
             [this]() { return m_pDeviceWidget != nullptr; }, this);
     }
 
-    // Edit menu
-    wxMenu* editMenu = nullptr;
-    if (m_plater != nullptr)
-    {
-        editMenu = new wxMenu();
-    #ifdef __APPLE__
-        // Backspace sign
-        wxString hotkey_delete = "\u232b";
-    #else
-        wxString hotkey_delete = "Del";
-    #endif
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_selectall") + sep + GUI::shortkey_ctrl_prefix() + sep_space + "&A",
-            _L("Selects all objects"), [this](wxCommandEvent&) { m_plater->select_all(); },
-            "", nullptr, [this](){return can_select(); }, this);
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_deselectall") + sep + "&Esc",
-            _L("Deselects all objects"), [this](wxCommandEvent&) { m_plater->deselect_all(); },
-            "", nullptr, [this](){return can_deselect(); }, this);
-       // editMenu->AppendSeparator();
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_delect") + sep + "&" + hotkey_delete,
-            _L("Deletes the current selection"),[this](wxCommandEvent&) { m_plater->remove_selected(); },
-            ""/*"remove_menu",*/, nullptr, [this]() {return can_delete(); }, this);
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_delectall") + sep + GUI::shortkey_ctrl_prefix() + sep_space + hotkey_delete,
-            _L("Deletes all objects"), [this](wxCommandEvent&) { m_plater->reset_with_confirm(); },
-           ""/* "delete_all_menu"*/, nullptr, [this]() {return can_delete_all(); }, this);
+    // Edit menu removed: select all/deselect, delete, delete all, undo, redo,
+    // copy/paste and reload-from-disk were all plater operations on the 3D
+    // scene. With no scene there is nothing to select, undo or reload.
 
-        editMenu->AppendSeparator();
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_undo") + sep + GUI::shortkey_ctrl_prefix() + sep_space + "&Z",
-            _L("Undo"), [this](wxCommandEvent&) { m_plater->undo(); },
-            ""/*"undo_menu"*/, nullptr, [this]() {return m_plater->can_undo(); }, this);
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_redo") + sep + GUI::shortkey_ctrl_prefix() + sep_space + "&Y",
-            _L("Redo"), [this](wxCommandEvent&) { m_plater->redo(); },
-            ""/*"redo_menu"*/, nullptr, [this]() {return m_plater->can_redo(); }, this);
-
-        editMenu->AppendSeparator();
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_copy")+ sep + GUI::shortkey_ctrl_prefix() + sep_space + "&C",
-            _L("Copy selection to clipboard"), [this](wxCommandEvent&) { m_plater->copy_selection_to_clipboard(); },
-            ""/*"copy_menu"*/, nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_paste") + sep + GUI::shortkey_ctrl_prefix() + sep_space + "&V" ,
-            _L("Paste clipboard"), [this](wxCommandEvent&) { m_plater->paste_from_clipboard(); },
-            ""/*"paste_menu"*/, nullptr, [this]() {return m_plater->can_paste_from_clipboard(); }, this);
-        
-        editMenu->AppendSeparator();
-#ifdef __APPLE__
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_reload") + "\tCtrl+Shift+R",
-            _L("Reload the plater from disk"), [this](wxCommandEvent&) { m_plater->reload_all_from_disk(); },
-            "", nullptr, [this]() {return !m_plater->model().objects.empty(); }, this);
-#else
-        append_menu_item(editMenu, wxID_ANY, _L("common_menu_edit_reload") + sep + "F5",
-            _L("Reload the plater from disk"), [this](wxCommandEvent&) { m_plater->reload_all_from_disk(); },
-            "", nullptr, [this]() {return !m_plater->model().objects.empty(); }, this);
-#endif // __APPLE__
-
-       /* editMenu->AppendSeparator();
-        append_menu_item(editMenu, wxID_ANY, _L("Searc&h") + "\tCtrl+F",
-            _L("Search in settings"), [this](wxCommandEvent&) { m_plater->search(m_plater->IsShown()); },
-            "search", nullptr, []() {return true; }, this);*/
-    }
-
-    // Window menu
-    auto windowMenu = new wxMenu();
-    {
-        if (m_plater) {
-            append_menu_item(windowMenu, wxID_HIGHEST + 1, _L("&Plater Tab") + "\tCtrl+1", _L("Show the plater"),
-                [this](wxCommandEvent&) { select_tab(size_t(0)); }, ""/*"plater"*/, nullptr,
-                []() {return true; }, this);
-            windowMenu->AppendSeparator();
-        }
-        append_menu_item(windowMenu, wxID_HIGHEST + 2, _L("P&rint Settings Tab") + "\tCtrl+2", _L("Show the print settings"),
-            [this/*, tab_offset*/](wxCommandEvent&) { select_tab(1); }, ""/*"cog"*/, nullptr,
-            []() {return true; }, this);
-        append_menu_item(windowMenu, wxID_HIGHEST + 3, _L("&Filament Settings Tab") + "\tCtrl+3", _L("Show the filament settings"),
-            [this/*, tab_offset*/](wxCommandEvent&) { select_tab(2); }, ""/*"spool"*/, nullptr,
-            []() {return true; }, this);
-        append_menu_item(windowMenu, wxID_HIGHEST + 4, _L("Print&er Settings Tab") + "\tCtrl+4", _L("Show the printer settings"),
-            [this/*, tab_offset*/](wxCommandEvent&) { select_tab(3); }, ""/*"printer"*/, nullptr,
-            []() {return true; }, this);
-        if (m_plater) {
-            windowMenu->AppendSeparator();
-            append_menu_item(windowMenu, wxID_HIGHEST + 5, _L("3&D") + "\tCtrl+5", _L("Show the 3D editing view"),
-                [this](wxCommandEvent&) { m_plater->select_view_3D(ViewMode::VIEW_MODE_3D); }, ""/*"editor_menu"*/, nullptr,
-                [this](){return can_change_view(); }, this);
-            append_menu_item(windowMenu, wxID_HIGHEST + 6, _L("Pre&view") + "\tCtrl+6", _L("Show the 3D slices preview"),
-                [this](wxCommandEvent&) { m_plater->select_view_3D(ViewMode::VIEW_MODE_PREVIEW); }, ""/*"preview_menu"*/, nullptr,
-                [this](){return can_change_view(); }, this);
-        }
-
-        windowMenu->AppendSeparator();
-        append_menu_item(windowMenu, wxID_ANY, _L("Shape Gallery"), _L("Open the dialog to modify shape gallery"),
-            [this](wxCommandEvent&) {
-                if (gallery_dialog()->show(true) == wxID_OK) {
-                    wxArrayString input_files;
-                    m_gallery_dialog->get_input_files(input_files);
-                    //if (!input_files.IsEmpty())
-                    //    m_plater->objectbar().getObjectList()->load_shape_object_from_gallery(input_files);
-                }
-            }, "shape_gallery", nullptr, []() {return true; }, this);
-        
-        windowMenu->AppendSeparator();
-        append_menu_item(windowMenu, wxID_ANY, _L("Print &Host Upload Queue") + "\tCtrl+J", _L("Display the Print Host Upload Queue window"),
-            [this](wxCommandEvent&) { m_printhost_queue_dlg->Show(); }, ""/*"upload_queue"*/, nullptr, []() {return true; }, this);
-        
-        windowMenu->AppendSeparator();
-        append_menu_item(windowMenu, wxID_ANY, _L("Open New Instance") + "\tCtrl+Shift+I", _L("Open a new M5 FDM Controls instance"),
-            [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr, [this]() {return m_plater != nullptr && !wxGetApp().app_config->get_bool("single_instance"); }, this);
-
-        windowMenu->AppendSeparator();
-        append_menu_item(windowMenu, wxID_ANY, _L("Compare Presets")/* + "\tCtrl+F"*/, _L("Compare presets"), 
-            [this](wxCommandEvent&) { diff_dialog.show();}, ""/*"compare"*/, nullptr, []() {return true; }, this);
-    }
+    // Window menu removed: it was built but never appended to the menubar (the
+    // Append call was already commented out), and every item drove the plater --
+    // plater/preset tabs, 3D and preview views, and the preset diff dialog.
 
     // View menu removed: it drove the 3D scene (view angles, object labels).
     wxMenu* viewMenu = nullptr;
@@ -3774,8 +3672,6 @@ void MainFrame::init_menubar_as_editor()
     m_menubar = new wxMenuBar();
     m_menubar->SetFont(this->normal_font());
     m_menubar->Append(fileMenu, _L("common_menu_title_file"));
-    if (editMenu) m_menubar->Append(editMenu, _L("common_menu_title_edit"));
-   // m_menubar->Append(windowMenu, _L("&Window"));
     if(settingsMenu) m_menubar->Append(settingsMenu, _L("common_menu_title_settings"));
     // View and Calibration are gone. Note the Calibration append was not guarded
     // on its own menu, so leaving it would have passed a null wxMenu to Append.
@@ -4049,8 +3945,8 @@ void MainFrame::update_menubar()
 {
     // Nothing left to relabel. This retitled menu items between their FFF and SLA
     // wordings ("Export G-code"/"Export", "Filament"/"Material Settings Tab"). The
-    // Export item lived in the File menu, which is gone, and the Filament/Printer
-    // items belong to windowMenu, which is built but never appended to the menubar.
+    // Export item lived in the File menu and the Filament/Printer items in the
+    // Window menu; both menus are gone.
     //
     // It indexed m_changeable_menu_items by the MenuItems enum (miExport = 0 ...
     // miPrinterTab = 3), relying on the File menu pushing the first two entries.
