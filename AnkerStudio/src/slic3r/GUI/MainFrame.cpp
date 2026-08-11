@@ -849,81 +849,38 @@ void MainFrame::initTabPanel() {
 
     // declare events
     Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) {
-        if (event.CanVeto() && m_plater->canvas3D()->get_gizmos_manager().is_in_editing_mode(true)) {
-            // prevents to open the save dirty project dialog
-            event.Veto();
-            return;
-        }
-
-        if (m_plater != nullptr) {
-            int saved_project = m_plater->save_project_if_dirty(_L("Closing M5 FDM Control. Current project is modified."));
-            if (saved_project == wxID_CANCEL) {
-                event.Veto();
-                return;
-            }
-            // check unsaved changes only if project wasn't saved
-            else if (plater()->is_project_dirty() && saved_project == wxID_NO && event.CanVeto() &&
-                (plater()->is_presets_dirty() && !wxGetApp().check_and_save_current_preset_changes(_L("M5 FDM Control is closing"), _L("Closing M5 FDM Control while some presets are modified.")))) {
-                event.Veto();
-                return;
-            }
-			else
-			{
-				plater()->sidebarnew().checkDirtyDataonParameterpanel();
-			}
-        }
-
+        // The gizmo-editing veto, the save-dirty-project prompt and the
+        // acode-export interlock all went with the slicer. Nothing can be dirty
+        // and nothing exports, so closing is unconditional.
         if (event.CanVeto() && !wxGetApp().check_print_host_queue()) {
             event.Veto();
             return;
         }
 
-        if (false == plater()->is_exporting_acode()) {
+        //report: exit soft
+        std::string durationStr = getWorkDuration();
+        std::string errorCode = std::string("0");
+        std::string errorMsg = std::string("exit soft");
 
-            //report: exit soft
+        std::map<std::string, std::string> map;
+        map.insert(std::make_pair(c_es_error_code, errorCode));
+        map.insert(std::make_pair(c_es_error_msg, errorMsg));
+        map.insert(std::make_pair(c_exit_startup_duration, durationStr));
+        ANKER_LOG_INFO << "Report bury event is " << e_exit_soft;
+        reportBuryEvent(e_exit_soft, map, true);
 
-            std::string durationStr = getWorkDuration();
-            std::string errorCode = std::string("0");
-            std::string errorMsg = std::string("exit soft");
-
-            std::map<std::string, std::string> map;
-            map.insert(std::make_pair(c_es_error_code, errorCode));
-            map.insert(std::make_pair(c_es_error_msg, errorMsg));
-            map.insert(std::make_pair(c_exit_startup_duration, durationStr));
-            ANKER_LOG_INFO << "Report bury event is " << e_exit_soft;
-            reportBuryEvent(e_exit_soft, map, true);
-            
-            this->shutdown();
-            m_normalExit = true;
-            // propagate event
-            event.Skip();
-            wxExit();
-        }
-        else {
-            // not safe to shutdown, stop acode expoting task first
-            ANKER_LOG_INFO << "gcode export is runing ,stop it first";
-            m_normalExit = true;
-            plater()->set_app_closing(true);
-            plater()->stop_exporting_acode();
-
-            //event.Skip();
-        }
+        this->shutdown();
+        m_normalExit = true;
+        // propagate event
+        event.Skip();
+        wxExit();
         });
 
-    Bind(wxCUSTOMEVT_EXPORT_FINISHED_SAFE_QUIT_APP, [this](wxCommandEvent& event) {
-        if (m_normalExit && false == plater()->is_exporting_acode()) {
-            ANKER_LOG_INFO << "gcode export is finished ,safe to shutdown";
-            this->shutdown();
-            event.Skip();
-            wxExit();
-        }
-        });
+    // EXPORT_FINISHED_SAFE_QUIT_APP is unreachable: nothing exports acode.
 
     //FIXME it seems this method is not called on application start-up, at least not on Windows. Why?
     // The same applies to wxEVT_CREATE, it is not being called on startup on Windows.
     Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
-        if (m_plater != nullptr && event.GetActive())
-            m_plater->on_activate();
         event.Skip();
         });
 
@@ -1604,39 +1561,9 @@ void MainFrame::init_tabpanel()
     m_printTabPanel->Hide();
     m_settings_dialog.set_tabpanel(m_tabpanel);
 
-#ifdef __WXMSW__
-    m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
-#else
-    m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
-#endif
-        if (int old_selection = e.GetOldSelection();
-            old_selection != wxNOT_FOUND && old_selection < static_cast<int>(m_tabpanel->GetPageCount())) {
-            Tab* old_tab = dynamic_cast<Tab*>(m_tabpanel->GetPage(old_selection));
-            if (old_tab)
-                old_tab->validate_custom_gcodes();
-        }
-
-        wxWindow* panel = m_tabpanel->GetCurrentPage();
-        Tab* tab = dynamic_cast<Tab*>(panel);
-        // There shouldn't be a case, when we try to select a tab, which doesn't support a printer technology
-        if (panel == nullptr || (tab != nullptr && !tab->supports_printer_technology(m_plater->printer_technology())))
-            return;
-
-#if SHOW_OLD_SETTING_DIALOG
-        auto& tabs_list = wxGetApp().tabs_list;
-        if (tab && std::find(tabs_list.begin(), tabs_list.end(), tab) != tabs_list.end()) {
-            // On GTK, the wxEVT_NOTEBOOK_PAGE_CHANGED event is triggered
-            // before the MainFrame is fully set up.
-            tab->OnActivate();
-            m_last_selected_tab = m_tabpanel->GetSelection();
-#ifdef _MSW_DARK_MODE
-            if (wxGetApp().tabs_as_menu())
-                tab->SetFocus();
-#endif
-        }
-#endif
-        m_last_selected_tab = m_tabpanel->GetSelection();
-    });
+    // The page-changed handler for m_tabpanel is gone with the preset tabs: it
+    // validated custom G-code on the outgoing Tab and filtered pages by printer
+    // technology. m_tabpanel now never has any pages.
 
     m_plater = new Plater(this, this);
     m_plater->Bind(wxCUSTOMEVT_ANKER_SLICE_FOR_COMMENT, [this] (wxCommandEvent & event){
@@ -1664,23 +1591,8 @@ void MainFrame::init_tabpanel()
     }
        
 
-    if (m_plater) {
-        // load initial config
-        //update by alves, cover right parameters data to the config if fff_print then process		
-        DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
-        if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() == ptFFF)
-        {
-            Slic3r::GUI::wxGetApp().plater()->sidebarnew().updatePreset(full_config);
-        }
-
-        m_plater->on_config_change(full_config);
-
-        // Show a correct number of filament fields.
-        // nozzle_diameter is undefined when SLA printer is selected
-        if (full_config.has("nozzle_diameter")) {
-            m_plater->on_extruders_change(full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size());
-        }
-    }
+    // Pushing the preset bundle's full config into the plater sidebar and
+    // extruder fields is gone with the slicing UI -- nothing renders it.
 }
 
 void MainFrame::getwebLoginDataBack(const std::string& from)
@@ -3952,24 +3864,18 @@ void MainFrame::showAnkerCfgDlg() {
 
 void MainFrame::on_size(wxSizeEvent& event)
 {
-    if (m_plater)
-        m_plater->on_size(event);
 
     event.Skip();
 }
 
 void MainFrame::on_move(wxMoveEvent& event)
 {
-    if (m_plater)
-        m_plater->on_move(event);
 
     event.Skip();
 }
 
 void MainFrame::on_show(wxShowEvent& event)
 {
-    if (m_plater)
-        m_plater->on_show(event);
 
     if (m_pDeviceWidget)
         m_pDeviceWidget->activate(event.IsShown());
@@ -3988,8 +3894,6 @@ void MainFrame::on_show(wxShowEvent& event)
 
 void MainFrame::on_minimize(wxIconizeEvent& event)
 {
-    if (m_plater)
-        m_plater->on_minimize(event);
 
     if (m_pDeviceWidget)
         m_pDeviceWidget->activate(false);
@@ -4016,8 +3920,6 @@ void MainFrame::on_Activate(wxActivateEvent& event)
 
 void MainFrame::on_maximize(wxMaximizeEvent& event)
 {
-    if (m_plater)
-        m_plater->on_maximize(event);
 
     if (m_pDeviceWidget)
         m_pDeviceWidget->activate(true);
