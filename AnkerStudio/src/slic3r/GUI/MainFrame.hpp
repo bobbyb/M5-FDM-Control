@@ -224,7 +224,8 @@ public:
     void        getwebLoginDataBack(const std::string& from);
     AnkerWebView* CreateWebView(bool background);
     void        InitAnkerDevice();
-    void        create_preset_tabs();
+    // Builds the Device / Device Details pages and their event handlers.
+    void        initDeviceTabs();
     bool        is_active_and_shown_tab(Tab* tab);
     // add by allen for ankerCfgDlg
     bool        isActiveAndShownAnkerTab(AnkerTab* tab);

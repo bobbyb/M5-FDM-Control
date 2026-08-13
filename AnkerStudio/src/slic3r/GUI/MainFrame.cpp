@@ -1496,6 +1496,10 @@ void MainFrame::init_tabpanel()
     // No Plater. It was still being constructed and hidden purely so that the
     // slicing-era code paths in GUI_App had something to point at; nothing renders
     // it, and the "rate us after N slices" prompt it drove has no meaning here.
+
+    // Builds the Device and Device Details pages and binds the account/OTA/HTTP
+    // handlers. Without this the tab bar still draws and the pages are empty.
+    initDeviceTabs();
 }
 
 void MainFrame::getwebLoginDataBack(const std::string& from)
@@ -2301,14 +2305,12 @@ void MainFrame::InitAnkerDevice()
     });
 }
 
-void MainFrame::create_preset_tabs()
+// Was create_preset_tabs(). Renamed because the old name cost a regression: the
+// five preset tabs it once built are gone, but this is where the Device and Device
+// Details pages are created and the account/OTA/HTTP-error handlers are bound, so
+// dropping the call alongside the plater left a window with tabs and no content.
+void MainFrame::initDeviceTabs()
 {
-    // The five preset tabs (print / filament / SLA print / SLA material / printer)
-    // are gone; nothing is added to m_tabpanel, so tabs_list stays empty and
-    // get_tab() returns null for every type.
-    //
-    // Despite its name this function survives because it also builds the Device
-    // widget and binds the account, OTA and HTTP-error handlers below.
     InitAnkerDevice();
 
     Bind(wxCUSTOMEVT_GET_COMMENT_FLAGS, [this](wxCommandEvent& event) {
