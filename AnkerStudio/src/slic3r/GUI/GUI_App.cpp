@@ -4225,6 +4225,17 @@ void GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
         boost::optional<WindowMetrics> metrics;
         if (app_config->has(config_key))
             metrics = WindowMetrics::deserialize(app_config->get(config_key));
+        // 908x604 is the plater-era minimum size, and it gets written back whenever a
+        // run ends without a clean save -- including by the sibling M5 FDM Studio
+        // fork, which still shares this profile directory (same SLIC3R_APP_KEY). It
+        // is not a size anyone picks deliberately, and with the plater gone this
+        // window has no business opening that small, so treat it as "unset" and fall
+        // through to the default placement.
+        if (metrics) {
+            const wxSize sz = metrics->get_rect().GetSize();
+            if (sz.GetWidth() == 908 && sz.GetHeight() == 604)
+                metrics = boost::none;
+        }
         if (metrics) {
             const wxRect& rect = metrics->get_rect();
             window->SetSize(rect.GetSize());
