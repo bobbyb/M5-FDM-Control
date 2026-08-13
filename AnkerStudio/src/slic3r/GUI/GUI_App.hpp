@@ -3,9 +3,7 @@
 
 #include <memory>
 #include <string>
-#include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
-#include "OpenGLManager.hpp"
 #include "libslic3r/Preset.hpp"
 
 #include <wx/app.h>
@@ -204,11 +202,9 @@ private:
     // Best translation language, provided by Windows or OSX, owned by wxWidgets.
     const wxLanguageInfo		 *m_language_info_best   = nullptr;
 
-    OpenGLManager m_opengl_mgr;
 
     std::unique_ptr<RemovableDriveManager> m_removable_drive_manager;
 
-    std::unique_ptr<ImGuiWrapper> m_imgui;
     std::unique_ptr<PrintHostJobQueue> m_printhost_job_queue;
 	std::unique_ptr <OtherInstanceMessageHandler> m_other_instance_message_handler;
     std::unique_ptr <AppUpdater> m_app_updater;
@@ -241,11 +237,6 @@ public:
     // Process command line parameters cached in this->init_params,
     // load configs, STLs etc.
     void            post_init();
-    // If formatted for github, plaintext with OpenGL extensions enclosed into <details>.
-    // Otherwise HTML formatted for the system info dialog.
-    static std::string get_gl_info(bool for_github);
-    wxGLContext*    init_glcontext(wxGLCanvas& canvas);
-    bool            init_opengl();
 
     static unsigned get_colour_approx_luma(const wxColour &colour);
     static bool     dark_mode();
@@ -312,11 +303,6 @@ public:
     void            import_zip(wxWindow* parent, wxString& input_file) const;
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
     void            change_calibration_dialog(const wxDialog* have_to_destroy, wxDialog* new_one);
-    void            calib_filament_temperature_dialog(wxWindow* parent, Plater* plater);
-    void            calib_pressure_advance_dialog(wxWindow* parent, Plater* plater);
-    void            calib_retraction_dialog(wxWindow* parent, Plater* plater);
-    void            calib_max_flowrate_dialog(wxWindow* parent, Plater* plater);
-    void            calib_vfa_dialog(wxWindow* parent, Plater* plater);
 
     static bool     catch_error(std::function<void()> cb, const std::string& err);
 
@@ -377,22 +363,8 @@ public:
     void            MacOpenURL(const wxString& url) override;
 #endif /* __APPLE */
 
-    Sidebar&             sidebar();
-    // add by allen for ankerCfgDlg
-    AnkerSidebarNew&             sidebarnew();
-    AnkerObjectBar*         objectbar();
-    AnkerFloatingList*      floatinglist();
-    ObjectManipulation*  obj_manipul();
-    AnkerObjectManipulator*  aobj_manipul();
-    ObjectSettings*      obj_settings();
-    ObjectList*          obj_list();
-    AnkerObjectLayers*   obj_layers_();
-    AnkerObjectLayerEditor* obj_layers();
-    Plater*              plater();
-    const Plater*        plater() const;
-    Model&      		 model();
-    NotificationManager* notification_manager();
-    GalleryDialog *      gallery_dialog();
+    // The plater and everything it exposed -- sidebar, object list/bar/layers,
+    // manipulators, model, notification manager -- went with the 3D view.
     Downloader*          downloader();
     FilamentMaterialManager* filamentMaterialManager();
     OnlinePresetManager* onlinePresetManager();
@@ -402,11 +374,8 @@ public:
 
     AppConfig*      app_config{ nullptr };
     PresetBundle*   preset_bundle{ nullptr };
-    PresetUpdater*  preset_updater{ nullptr };
     MainFrame*      mainframe{ nullptr };
-    Plater*         plater_{ nullptr };
 
-	PresetUpdater*  get_preset_updater() { return preset_updater; }
 
     wxBookCtrlBase* tab_panel() const ;
     // add by allen for ankerCfgDlg
@@ -432,7 +401,6 @@ public:
 
     std::string getWebview2Version();
 
-    ImGuiWrapper* imgui() { return m_imgui.get(); }
 
     PrintHostJobQueue& printhost_job_queue() { return *m_printhost_job_queue.get(); }
 
@@ -440,18 +408,13 @@ public:
     bool            may_switch_to_SLA_preset(const wxString& caption);
     bool            run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage start_page = ConfigWizard::SP_WELCOME);
     void            show_desktop_integration_dialog();
-    void            show_downloader_registration_dialog();
 
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG
     // temporary and debug only -> extract thumbnails from selected gcode and save them as png files
     void            gcode_thumbnails_debug();
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG
 
-    GLShaderProgram* get_shader(const std::string& shader_name) { return m_opengl_mgr.get_shader(shader_name); }
-    GLShaderProgram* get_current_shader() { return m_opengl_mgr.get_current_shader(); }
 
-    bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_version_greater_or_equal_to(major, minor); }
-    bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_glsl_version_greater_or_equal_to(major, minor); }
     int  GetSingleChoiceIndex(const wxString& message, const wxString& caption, const wxArrayString& choices, int initialSelection);
 
 #ifdef __WXMSW__

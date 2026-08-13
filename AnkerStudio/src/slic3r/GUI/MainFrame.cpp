@@ -37,7 +37,6 @@
 #include "InstanceCheck.hpp"
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
-#include "Plater.hpp"
 #include "../Utils/Process.hpp"
 #include "format.hpp"
 
@@ -51,8 +50,6 @@
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
-#include "GalleryDialog.hpp"
-#include "NotificationManager.hpp"
 #include "Preferences.hpp"
 
 #ifdef _WIN32
@@ -93,7 +90,6 @@
 #include "slic3r/Config/AnkerCommonConfig.hpp"
 #include "../AnkerComFunction.hpp"
 #include "AnkerConfig.hpp"
-#include "HintNotification.hpp"
 #include <slic3r/Config/AnkerCommonConfig.hpp>
 extern AnkerPlugin* pAnkerPlugin;
 
@@ -350,7 +346,6 @@ void MainFrame::loginFinishHandle()
         m_pDeviceWidget->loadDeviceList();
 
 
-    HintDatabase::get_instance().reinit();
 
     QueryDataShared(nullptr);
     ANKER_LOG_INFO << "loginFinishHandle leave";
@@ -419,9 +414,6 @@ void MainFrame::onLogOut()
     RemovePrivacyChoices();
     if (m_loginWebview)
         m_loginWebview->onLogOut();
-
-    if (m_plater)
-        m_plater->setStarCommentFlagsTimes(-1);
 }
 
 
@@ -612,7 +604,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_S
     m_printhost_queue_dlg(new PrintHostQueueDialog(this))
     , m_recent_projects(9)
     , m_settings_dialog(this)
-    , diff_dialog(this)
 {
     // Fonts were created by the DPIFrame constructor for the monitor, on which the window opened.
     wxGetApp().update_fonts(this);
@@ -933,25 +924,16 @@ void MainFrame::initTabPanel() {
     // When we move application between Retina and non-Retina displays, The legend on a canvas doesn't redraw
     // So, redraw explicitly canvas, when application is moved
     //FIXME maybe this is useful for __WXGTK3__ as well?
-#if __APPLE__
-    Bind(wxEVT_MOVE, [](wxMoveEvent& event) {
-        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-        wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
-        event.Skip();
-        });
-#endif
+    // The Retina move-redraw workaround drove the GL canvas, which is gone.
 
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
 
     // update_ui_from_settings() removed with the plater/preset UI
 
-    if (m_plater != nullptr) {
-        m_plater->get_collapse_toolbar().set_enabled(wxGetApp().app_config->get_bool("show_collapse_button"));
-        m_plater->show_action_buttons(true);
-
-        preferences_dialog = new PreferencesDialog(this);
-    }
+    // The collapse toolbar and action buttons went with the 3D view; the preferences
+    // dialog did not, and was only ever gated on the plater by accident of nesting.
+    preferences_dialog = new PreferencesDialog(this);
 
     // bind events from DiffDlg
 
@@ -1109,7 +1091,7 @@ static void update_marker_for_tabs_menu(wxMenuBar* bar, const wxString& title, b
 
 static void add_tabs_as_menu(wxMenuBar* bar, MainFrame* main_frame, wxWindow* bar_parent)
 {
-    PrinterTechnology pt = main_frame->plater() ? main_frame->plater()->printer_technology() : ptFFF;
+    PrinterTechnology pt = ptFFF;
 
     bool is_mainframe_menu = bar_parent == main_frame;
     if (!is_mainframe_menu)
@@ -1130,14 +1112,7 @@ static void add_tabs_as_menu(wxMenuBar* bar, MainFrame* main_frame, wxWindow* ba
         const wxString& title = menu->GetTitle();
         if (title == _L("Plater"))
             main_frame->select_tab(size_t(0));
-        else if (title == _L("Print Settings"))
-            main_frame->select_tab(wxGetApp().get_tab(main_frame->plater()->printer_technology() == ptFFF ? Preset::TYPE_PRINT : Preset::TYPE_SLA_PRINT));
-        else if (title == _L("Filament Settings"))
-            main_frame->select_tab(wxGetApp().get_tab(Preset::TYPE_FILAMENT));
-        else if (title == _L("Material Settings"))
-            main_frame->select_tab(wxGetApp().get_tab(Preset::TYPE_SLA_MATERIAL));
-        else if (title == _L("Printer Settings"))
-            main_frame->select_tab(wxGetApp().get_tab(Preset::TYPE_PRINTER));
+        // The preset settings tabs are gone, so there is nothing else to select.
 
         // update markers for selected/unselected menu items
         update_marker_for_tabs_menu(bar, title, is_mainframe_menu);
@@ -1147,7 +1122,7 @@ static void add_tabs_as_menu(wxMenuBar* bar, MainFrame* main_frame, wxWindow* ba
 void MainFrame::show_tabs_menu(bool show)
 {
     if (show)
-        append_tab_menu_items_to_menubar(m_menubar, plater() ? plater()->printer_technology() : ptFFF, true);
+        append_tab_menu_items_to_menubar(m_menubar, ptFFF, true);
     else
         while (m_menubar->GetMenuCount() >= 8) {
             if (wxMenu* menu = m_menubar->Remove(7))
@@ -1165,25 +1140,11 @@ void MainFrame::update_layout()
             }
         };
 
-        // On Linux m_plater needs to be removed from m_tabpanel before to reparent it
-        int plater_page_id = m_tabpanel->FindPage(m_plater);
-        if (plater_page_id != wxNOT_FOUND)
-            m_tabpanel->RemovePage(plater_page_id);
-
-        if (m_plater->GetParent() != this)
-            m_plater->Reparent(this);
-
         if (m_tabpanel->GetParent() != this)
             m_tabpanel->Reparent(this);
 
         if (m_printTabPanel->GetParent() != this)
             m_printTabPanel->Reparent(this);
-
-        plater_page_id = (m_plater_page != nullptr) ? m_tabpanel->FindPage(m_plater_page) : wxNOT_FOUND;
-        if (plater_page_id != wxNOT_FOUND) {
-            m_tabpanel->DeletePage(plater_page_id);
-            m_plater_page = nullptr;
-        }
 
         clean_sizer(m_main_sizer);
         clean_sizer(m_settings_dialog.GetSizer());
@@ -1192,7 +1153,6 @@ void MainFrame::update_layout()
             m_settings_dialog.Close();
 
         m_tabpanel->Hide();
-        m_plater->Hide();
 
         Layout();
     };
@@ -1255,9 +1215,6 @@ void MainFrame::update_layout()
         m_tabpanel->Reparent(&m_settings_dialog);
         m_settings_dialog.GetSizer()->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 2);
         m_tabpanel->Show();
-        // Was m_plater->Show(). It is parented to the frame but in no sizer now, so
-        // showing it would paint a stray panel over the Device tab.
-        m_plater->Hide();
 
 #ifdef _MSW_DARK_MODE
         if (wxGetApp().tabs_as_menu())
@@ -1364,7 +1321,7 @@ void MainFrame::shutdown(bool restart)
 
     // add by allen for ankerCfgDlg
     if (m_ankerCfgDlg && m_ankerCfgDlg->IsShown()) {
-        m_ankerCfgDlg->CloseDlg();
+        ;   // the Anker config dialog went with the preset tabs
     }
 
     // Plater teardown (job worker, canvas event unbinding, canvas volumes) went
@@ -1397,14 +1354,11 @@ void MainFrame::shutdown(bool restart)
     // set to null tabs and a plater
     // to avoid any manipulations with them from App->wxEVT_IDLE after of the mainframe closing 
 #if SHOW_OLD_SETTING_DIALOG
-    wxGetApp().tabs_list.clear();
 #endif
    
     // add by allen for ankerCfgDlg
     wxGetApp().ankerTabsList.clear();
 
-    wxGetApp().plater_ = nullptr;
-    m_plater           = nullptr;
 
     CloseVideoStream(VIDEO_CLOSE_BY_APP_QUIT);
     DatamangerUi::GetInstance().ResetMainObj();
@@ -1417,12 +1371,6 @@ void MainFrame::shutdown(bool restart)
 }
 
 
-GalleryDialog* MainFrame::gallery_dialog()
-{
-    if (!m_gallery_dialog)
-        m_gallery_dialog = new GalleryDialog(this);
-    return m_gallery_dialog;
-}
 
 void MainFrame::update_title()
 {
@@ -1471,10 +1419,6 @@ void MainFrame::OnOtaTimer(wxTimerEvent& event)
 
 void MainFrame::OnHttpConnectError(wxCommandEvent& event)
 {
-    if (m_plater)
-    {
-        m_plater->UpdateDeviceList(true);
-    }
     wxVariant* pData = (wxVariant*)event.GetClientData();
 
     wxSize dialogSize = AnkerSize(400, 185);
@@ -1549,34 +1493,9 @@ void MainFrame::init_tabpanel()
     // validated custom G-code on the outgoing Tab and filtered pages by printer
     // technology. m_tabpanel now never has any pages.
 
-    m_plater = new Plater(this, this);
-    m_plater->Bind(wxCUSTOMEVT_ANKER_SLICE_FOR_COMMENT, [this] (wxCommandEvent & event){
-
-        if (!m_showCommentWebView)
-            return;
-        m_showCommentWebView = false;
-        wxPoint mfPoint = wxGetApp().mainframe->GetPosition();
-        wxSize mfSize = wxGetApp().mainframe->GetClientSize();
-        wxSize dialogSize = m_sliceCommentDialog->GetBestSize();
-        wxPoint center = wxPoint(mfPoint.x + mfSize.GetWidth() / 2 - dialogSize.GetWidth() / 2, mfPoint.y + mfSize.GetHeight() / 2 - dialogSize.GetHeight() / 2);
-        m_sliceCommentDialog->Move(center);
-        m_sliceCommentDialog->ShowModal();        
-     });
-    m_plater->SetBackgroundColour(wxColour("#18191B"));
-    m_plater->Hide();
-
-    wxGetApp().plater_ = m_plater;
-    
-
-    if (wxGetApp().is_editor())
-    {
-        ANKER_LOG_INFO << "create preset tabs ";
-        create_preset_tabs();
-    }
-       
-
-    // Pushing the preset bundle's full config into the plater sidebar and
-    // extruder fields is gone with the slicing UI -- nothing renders it.
+    // No Plater. It was still being constructed and hidden purely so that the
+    // slicing-era code paths in GUI_App had something to point at; nothing renders
+    // it, and the "rate us after N slices" prompt it drove has no meaning here.
 }
 
 void MainFrame::getwebLoginDataBack(const std::string& from)
@@ -1694,7 +1613,6 @@ AnkerWebView* MainFrame::CreateWebView(bool background)
         if (m_pDeviceWidget)
             m_pDeviceWidget->loadDeviceList();
 
-        HintDatabase::get_instance().reinit();
         //wxGetApp().filamentMaterialManager()->AsyncUpdate();
         ANKER_LOG_INFO << "login back finish";
         },
@@ -2407,9 +2325,6 @@ void MainFrame::create_preset_tabs()
                 g_sliceCommentData.country = list[4]->GetString().ToStdString();
                 g_sliceCommentData.sliceCount = list[5]->GetString().ToStdString();
             
-                int sliceTimes = std::stoi(g_sliceCommentData.sliceCount);
-                if(m_plater)
-                    m_plater->setStarCommentFlagsTimes(sliceTimes);
             }
             ANKER_LOG_INFO << "get conment flags success";
         }
@@ -2427,11 +2342,6 @@ void MainFrame::create_preset_tabs()
         }
 
         CloseVideoStream(VIDEO_CLOSE_BY_LOGOUT);
-
-        if(m_plater)
-        {
-            m_plater->UpdateDeviceList(true);
-        }
 
         accountShowed = true;
         wxPoint mfPoint = wxGetApp().mainframe->GetPosition();
@@ -2594,19 +2504,11 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     //    dynamic_cast<Notebook*>(m_tabpanel)->Rescale();
 #endif
 
-    // update Plater
-    wxGetApp().plater()->msw_rescale();
 
    //// update AnkerConfigDialog
    // if (m_ankerCfgDlg)
    //     m_ankerCfgDlg->msw_rescale();
 
-    // update Tabs
-#if SHOW_OLD_SETTING_DIALOG
-    if (m_layout != ESettingsLayout::Dlg) // Do not update tabs if the Settings are in the separated dialog
-        for (auto tab : wxGetApp().tabs_list)
-            tab->msw_rescale();
-#endif
 
     // Workarounds for correct Window rendering after rescale
 
@@ -2725,19 +2627,10 @@ void MainFrame::on_sys_color_changed()
 //#endif
 #endif
 
-    // update Plater
-    wxGetApp().plater()->sys_color_changed();
-
-    // update Tabs
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab : wxGetApp().tabs_list)
-        tab->sys_color_changed();
-#endif
     // add by allen for ankerCfgDlg
     for (auto tab : wxGetApp().ankerTabsList)
         tab->sys_color_changed();
 
-    MenuFactory::sys_color_changed(m_menubar);
 
     this->Refresh();
 }
@@ -3233,8 +3126,7 @@ void MainFrame::init_menubar_as_editor()
     }
 #endif // __APPLE__
 
-    if (plater()->printer_technology() == ptSLA)
-        update_menubar();
+    // No SLA printer technology to switch the menubar for.
 }
 void MainFrame::buryTime()
 {
@@ -3269,11 +3161,7 @@ void MainFrame::selectLanguage(GUI_App::AnkerLanguageType language)
         }
     }
 
-    if (true == plater()->is_exporting_acode())
-    {
-        AnkerMessageBox(this, _u8L("common_reject_switch_language"), _u8L("common_popup_titlenotice"), false);
-        return;
-    }
+    // No slicing export can be in flight to block a language switch.
 
     wxGetApp().switch_language(language);
     //by samuel,should upodate language type in  DataManger
@@ -3629,9 +3517,6 @@ std::string MainFrame::get_dir_name(const wxString &full_name) const
 }
 
 // add by allen for ankerCfgDlg
-AnkerTabPresetComboBox* MainFrame::GetAnkerTabPresetCombo(const Preset::Type type) {
-    return m_ankerCfgDlg ? m_ankerCfgDlg->GetAnkerTabPresetCombo(type) : nullptr;
-}
 
 void MainFrame::updateMsgCenterItemContent(std::vector<MsgCenterItem>* pData)
 {
@@ -3754,7 +3639,7 @@ SettingsDialog::SettingsDialog(MainFrame* mainframe)
 #else /* __APPLE__ */
                 case WXK_CONTROL_F:
 #endif /* __APPLE__ */
-                case 'F': { m_main_frame->plater()->search(false); break; }
+                case 'F': break;   // plater search went with the object list
                 default:break;
                 }
             }
@@ -3814,11 +3699,6 @@ void SettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         dynamic_cast<Notebook*>(m_tabpanel)->Rescale();*/
 #endif
 
-    // update Tabs
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab : wxGetApp().tabs_list)
-        tab->msw_rescale();
-#endif
     // add by allen for ankerCfgDlg
     for (auto tab : wxGetApp().ankerTabsList)
         tab->msw_rescale();

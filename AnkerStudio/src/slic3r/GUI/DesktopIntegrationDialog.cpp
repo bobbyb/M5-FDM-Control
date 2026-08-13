@@ -4,7 +4,6 @@
 #include "GUI.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "NotificationManager.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Platform.hpp"
@@ -423,7 +422,6 @@ void DesktopIntegrationDialog::perform_desktop_integration()
             show_error(nullptr, _L("Performing desktop integration failed - could not create Gcodeviewer desktop file. AnkerStudio desktop file was probably created successfully."));
         }
     }
-    wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::DesktopIntegrationSuccess);
 }
 void DesktopIntegrationDialog::undo_desktop_intgration()
 {
@@ -455,7 +453,6 @@ void DesktopIntegrationDialog::undo_desktop_intgration()
             std::remove(path.c_str());
         }
     }
-    wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::UndoDesktopIntegrationSuccess);
 }
 void DesktopIntegrationDialog::perform_downloader_desktop_integration()
 {
@@ -609,7 +606,6 @@ void DesktopIntegrationDialog::perform_downloader_desktop_integration()
     int r = system(command.c_str());
     BOOST_LOG_TRIVIAL(debug) << "system result: " << r;
 
-    wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::DesktopIntegrationSuccess);
 }
 void DesktopIntegrationDialog::undo_downloader_registration()
 {

@@ -100,10 +100,8 @@ void PreferencesDialog::show(const std::string& highlight_opt_key /*= std::strin
 	if (wxGetApp().is_editor()) {
 		auto app_config = get_app_config();
 
-		downloader->set_path_name(app_config->get("url_downloader_dest"));
-		downloader->allow(!app_config->has("downloader_url_registered") || app_config->get_bool("downloader_url_registered"));
 
-		for (const std::string& opt_key : {"suppress_hyperlinks", "downloader_url_registered"})
+		for (const std::string& opt_key : {"suppress_hyperlinks"})
 			m_optgroup_other->set_value(opt_key, app_config->get_bool(opt_key));
 
 		// update colors for color pickers of the labels
@@ -446,7 +444,7 @@ void PreferencesDialog::build()
 			m_icon_size_sizer->ShowItems(boost::any_cast<bool>(value));
 			refresh_og(m_optgroup_gui);
 			get_app_config()->set("use_custom_toolbar_size", boost::any_cast<bool>(value) ? "1" : "0");
-			wxGetApp().plater()->get_current_canvas3D()->render();
+			// no 3D canvas to re-render
 			return;
 		}
 		if (opt_key == "tabs_as_menu") {
@@ -578,14 +576,8 @@ void PreferencesDialog::build()
 			//  "If disabled, the descriptions of configuration parameters in settings tabs will work as hyperlinks."),
 			app_config->get_bool("suppress_hyperlinks"));
 		
-		append_bool_option(m_optgroup_other, "downloader_url_registered",
-			L("Allow downloads from Printables.com"),
-			L("If enabled, M5 FDM Control will be allowed to download from Printables.com"),
-			app_config->get_bool("downloader_url_registered"));
-
 		activate_options_tab(m_optgroup_other);
 
-		create_downloader_path_sizer();
 //		create_settings_font_widget();
 
 #if ENABLE_ENVIRONMENT_MAP
@@ -689,14 +681,7 @@ void PreferencesDialog::update_ctrls_alignment()
 void PreferencesDialog::accept(wxEvent&)
 {
 	if(wxGetApp().is_editor()) {
-		if (const auto it = m_values.find("downloader_url_registered"); it != m_values.end())
-			downloader->allow(it->second == "1");
-		if (!downloader->on_finish())
-			return;
-#ifdef __linux__
-		if( downloader->get_perform_registration_linux()) 
-			DesktopIntegrationDialog::perform_downloader_desktop_integration();
-#endif // __linux__
+		// URL-downloader registration went with the configuration wizard.
 	}
 
 	bool update_filament_sidebar = (m_values.find("no_templates") != m_values.end());
@@ -930,7 +915,7 @@ void PreferencesDialog::create_icon_size_slider()
         auto val = m_icon_size_slider->GetValue();
 
 		app_config->set("custom_toolbar_size", (boost::format("%d") % val).str());
-		wxGetApp().plater()->get_current_canvas3D()->render();
+		// no 3D canvas to re-render
 
         if (val_label)
             val_label->SetLabelText(wxString::Format("%d", val));
@@ -1013,7 +998,6 @@ void PreferencesDialog::create_settings_text_color_widget()
 	m_blinkers[opt_key] = new BlinkingBitmap(parent);
 
 	wxSizer* stb_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
-	GUI_Descriptions::FillSizerWithTextColorDescriptions(stb_sizer, parent, &m_sys_colour, &m_mod_colour);
 
 	auto sizer = new wxBoxSizer(wxHORIZONTAL);
 	sizer->Add(m_blinkers[opt_key], 0, wxRIGHT, 2);
@@ -1040,7 +1024,6 @@ void PreferencesDialog::create_settings_mode_color_widget()
 
     // Mode color markers description
 	m_mode_palette = wxGetApp().get_mode_palette();
-	GUI_Descriptions::FillSizerWithModeColorDescriptions(stb_sizer, parent, { &m_mode_simple, &m_mode_advanced, &m_mode_expert }, m_mode_palette);
 
 	auto sizer = new wxBoxSizer(wxHORIZONTAL);
 	sizer->Add(m_blinkers[opt_key], 0, wxRIGHT, 2);
@@ -1119,24 +1102,6 @@ void PreferencesDialog::create_settings_font_widget()
 	append_preferences_option_to_searcher(m_optgroup_other, opt_key, title);
 }
 
-void PreferencesDialog::create_downloader_path_sizer()
-{
-	wxWindow* parent = m_optgroup_other->parent();
-
-	wxString title = L("Download path");
-	std::string opt_key = "url_downloader_dest";
-	m_blinkers[opt_key] = new BlinkingBitmap(parent);
-
-	downloader = new DownloaderUtils::Worker(parent);
-
-	auto sizer = new wxBoxSizer(wxHORIZONTAL);
-	sizer->Add(m_blinkers[opt_key], 0, wxRIGHT, 2);
-	sizer->Add(downloader, 1, wxALIGN_CENTER_VERTICAL);
-
-	m_optgroup_other->sizer->Add(sizer, 0, wxEXPAND | wxTOP, em_unit());
-
-	append_preferences_option_to_searcher(m_optgroup_other, opt_key, title);
-}
 
 void PreferencesDialog::init_highlighter(const t_config_option_key& opt_key)
 {

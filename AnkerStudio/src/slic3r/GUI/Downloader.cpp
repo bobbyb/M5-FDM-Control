@@ -1,6 +1,7 @@
 #include "Downloader.hpp"
 #include "GUI_App.hpp"
-#include "NotificationManager.hpp"
+#include "I18N.hpp"
+#include "GUI.hpp"
 #include "format.hpp"
 
 #include <boost/algorithm/string.hpp>
@@ -152,14 +153,12 @@ void Downloader::start_download(const std::string& full_url)
 	//if (!boost::starts_with(escaped_url, "https://") || !FileGet::is_subdomain(escaped_url, "printables.com")) {
 	//	std::string msg = format(_L("Download won't start. Download URL doesn't point to https://printables.com : %1%"), escaped_url);
 	//	BOOST_LOG_TRIVIAL(error) << msg;
-	//	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
 	//	ntf_mngr->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel, msg);
 	//	return;
 	//}
 	
 	std::string text(escaped_url);
     m_downloads.emplace_back(std::make_unique<Download>(id, std::move(escaped_url), this, m_dest_folder));
-	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
 	//comment by Samuel 20231106, Discarded  unused notification text
 	//ntf_mngr->push_download_URL_progress_notification(id, m_downloads.back()->get_filename(), std::bind(&Downloader::user_action_callback, this, std::placeholders::_1, std::placeholders::_2));
 	m_downloads.back()->start();
@@ -171,17 +170,13 @@ void Downloader::on_progress(wxCommandEvent& event)
 	size_t id = event.GetInt();
 	float percent = (float)std::stoi(boost::nowide::narrow(event.GetString())) / 100.f;
 	//BOOST_LOG_TRIVIAL(error) << "progress " << id << ": " << percent;
-	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
 	BOOST_LOG_TRIVIAL(trace) << "Download "<< id << ": " << percent;
-	ntf_mngr->set_download_URL_progress(id, percent);
 }
 void Downloader::on_error(wxCommandEvent& event)
 {
 	size_t id = event.GetInt();
     set_download_state(event.GetInt(), DownloadState::DownloadError);   
     BOOST_LOG_TRIVIAL(error) << "Download error: " << event.GetString();
-	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
-	ntf_mngr->set_download_URL_error(id, boost::nowide::narrow(event.GetString()));
 	show_error(nullptr, format_wxstr(L"%1%\n%2%", _L("The download has failed") + ":", event.GetString()));
 }
 void Downloader::on_complete(wxCommandEvent& event)
@@ -189,9 +184,7 @@ void Downloader::on_complete(wxCommandEvent& event)
 	// TODO: is this always true? :
 	// here we open the file itself, notification should get 1.f progress from on progress.
     set_download_state(event.GetInt(), DownloadState::DownloadDone);
-	wxArrayString paths;
-	paths.Add(event.GetString());
-	wxGetApp().plater()->load_files(paths);
+	// The finished download was handed to the plater to load; nothing consumes it now.
 }
 bool Downloader::user_action_callback(DownloaderUserAction action, int id)
 {
@@ -226,15 +219,11 @@ void Downloader::on_name_change(wxCommandEvent& event)
 void Downloader::on_paused(wxCommandEvent& event)
 {
 	size_t id = event.GetInt();
-	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
-	ntf_mngr->set_download_URL_paused(id);
 }
 
 void Downloader::on_canceled(wxCommandEvent& event)
 {
 	size_t id = event.GetInt();
-	NotificationManager* ntf_mngr = wxGetApp().notification_manager();
-	ntf_mngr->set_download_URL_canceled(id);
 }
 
 void Downloader::set_download_state(int id, DownloadState state)

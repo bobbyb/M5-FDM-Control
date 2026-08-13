@@ -447,7 +447,7 @@ MsgDataLegacy::MsgDataLegacy() :
 			"Please proceed with the %s that follows to set up the new presets "
 			"and to choose whether to enable automatic preset updates."
         )
-        , SLIC3R_APP_NAME, ConfigWizard::name()));
+        , SLIC3R_APP_NAME, _L("Configuration Wizard")));
 	text->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
 	content_sizer->Add(text);
 	content_sizer->AddSpacer(VERT_SPACING);

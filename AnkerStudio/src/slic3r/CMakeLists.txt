@@ -12,144 +12,25 @@ set(SLIC3R_GUI_SOURCES
     GUI/SysInfoDialog.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
-    GUI/BackgroundSlicingProcess.cpp
-    GUI/BackgroundSlicingProcess.hpp
     GUI/BitmapCache.cpp
     GUI/BitmapCache.hpp
-    GUI/Calibration/FlowCalibration.hpp
-    GUI/Calibration/FlowCalibration.cpp
-    GUI/Calibration/CalibrationAbstractDialog.hpp
-    GUI/Calibration/CalibrationMaxFlowrateDialog.cpp
-    GUI/Calibration/CalibrationMaxFlowrateDialog.hpp
-    GUI/Calibration/CalibrationPresAdvDialog.cpp
-    GUI/Calibration/CalibrationPresAdvDialog.hpp
-    GUI/Calibration/CalibrationTempDialog.cpp
-    GUI/Calibration/CalibrationTempDialog.hpp
-    GUI/Calibration/CalibrationRetractionDialog.cpp
-    GUI/Calibration/CalibrationRetractionDialog.hpp
-    GUI/Calibration/CalibrationVfaDialog.cpp
-    GUI/Calibration/CalibrationVfaDialog.hpp
-    GUI/ConfigSnapshotDialog.cpp
-    GUI/ConfigSnapshotDialog.hpp
-    GUI/3DScene.cpp
-    GUI/3DScene.hpp
     GUI/format.hpp
-    GUI/GLShadersManager.hpp
-    GUI/GLShadersManager.cpp
-    GUI/GLShader.cpp
-    GUI/GLShader.hpp    
-    GUI/GLCanvas3D.hpp
-    GUI/GLCanvas3D.cpp
-    GUI/SceneRaycaster.hpp
-    GUI/SceneRaycaster.cpp	
-    GUI/OpenGLManager.hpp
-    GUI/OpenGLManager.cpp
-    GUI/Selection.hpp
-    GUI/Selection.cpp    
-    GUI/Gizmos/GLGizmosManager.cpp
-    GUI/Gizmos/GLGizmosManager.hpp
-    GUI/Gizmos/GLGizmosCommon.cpp
-    GUI/Gizmos/GLGizmosCommon.hpp
-    GUI/Gizmos/GLGizmoBase.cpp
-    GUI/Gizmos/GLGizmoBase.hpp
-    GUI/Gizmos/GLGizmoSlaBase.cpp
-    GUI/Gizmos/GLGizmoSlaBase.hpp	
-    GUI/Gizmos/GLGizmoEmboss.cpp
-    GUI/Gizmos/GLGizmoEmboss.hpp
-    GUI/Gizmos/GLGizmoMove.cpp
-    GUI/Gizmos/GLGizmoMove.hpp
-    GUI/Gizmos/GLGizmoRotate.cpp
-    GUI/Gizmos/GLGizmoRotate.hpp
-    GUI/Gizmos/GLGizmoScale.cpp
-    GUI/Gizmos/GLGizmoScale.hpp
-    GUI/Gizmos/GLGizmoSlaSupports.cpp
-    GUI/Gizmos/GLGizmoSlaSupports.hpp
-    GUI/Gizmos/GLGizmoFdmSupports.cpp
-    GUI/Gizmos/GLGizmoFdmSupports.hpp
-    GUI/Gizmos/GLGizmoFlatten.cpp
-    GUI/Gizmos/GLGizmoFlatten.hpp
-    GUI/Gizmos/GLGizmoCut.cpp
-    GUI/Gizmos/GLGizmoCut.hpp
-    GUI/Gizmos/GLGizmoHollow.cpp
-    GUI/Gizmos/GLGizmoHollow.hpp
-    GUI/Gizmos/GLGizmoPainterBase.cpp
-    GUI/Gizmos/GLGizmoPainterBase.hpp
-    GUI/Gizmos/GLGizmoSeam.cpp
-    GUI/Gizmos/GLGizmoSeam.hpp
-    GUI/Gizmos/GLGizmoSimplify.cpp
-    GUI/Gizmos/GLGizmoSimplify.hpp
-    GUI/Gizmos/GLGizmoMmuSegmentation.cpp
-    GUI/Gizmos/GLGizmoMmuSegmentation.hpp
-    GUI/Gizmos/GLGizmoMeasure.cpp
-    GUI/Gizmos/GLGizmoMeasure.hpp
-    GUI/Gizmos/GLGizmoSVG.cpp
-    GUI/Gizmos/GLGizmoSVG.hpp
-    GUI/Gizmos/GizmoObjectManipulation.cpp
-    GUI/Gizmos/GizmoObjectManipulation.hpp
-    GUI/GLSelectionRectangle.cpp
-    GUI/GLSelectionRectangle.hpp
-    GUI/GLModel.hpp
-    GUI/GLModel.cpp
-    GUI/GLTexture.hpp
-    GUI/GLTexture.cpp
-    GUI/GLToolbar.hpp
-    GUI/GLToolbar.cpp
-    GUI/IMToolbar.hpp
-    GUI/IMToolbar.cpp
-    GUI/GCodeViewer.hpp
-    GUI/GCodeViewer.cpp    
     GUI/Preferences.cpp
     GUI/Preferences.hpp
-    GUI/PresetHints.cpp
-    GUI/PresetHints.hpp
-    GUI/AnkerSliceCommentDialog.cpp
-    GUI/AnkerSliceCommentDialog.hpp
     GUI/GUI.cpp
     GUI/GUI.hpp
     GUI/GUI_Init.cpp
     GUI/GUI_Init.hpp
-    GUI/GUI_Preview.cpp
-    GUI/GUI_Preview.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
     GUI/GUI_Utils.cpp
     GUI/GUI_Utils.hpp
-    GUI/GUI_Geometry.cpp
-    GUI/GUI_Geometry.hpp
     GUI/I18N.cpp
     GUI/I18N.hpp
-    GUI/IconManager.cpp
-    GUI/IconManager.hpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
-    GUI/Plater.cpp
-    GUI/Plater.hpp
-    GUI/PresetComboBoxes.hpp
-    GUI/PresetComboBoxes.cpp
     GUI/BitmapComboBox.hpp
     GUI/BitmapComboBox.cpp
-    GUI/SavePresetDialog.hpp
-    GUI/SavePresetDialog.cpp
-    GUI/PhysicalPrinterDialog.hpp
-    GUI/PhysicalPrinterDialog.cpp
-    GUI/GUI_Factories.cpp
-    GUI/GUI_Factories.hpp
-    GUI/GUI_ObjectList.cpp
-    GUI/GUI_ObjectList.hpp
-    GUI/GalleryDialog.cpp
-    GUI/GalleryDialog.hpp
-    GUI/GUI_ObjectManipulation.cpp
-    GUI/GUI_ObjectManipulation.hpp
-    GUI/GUI_ObjectSettings.cpp
-    GUI/GUI_ObjectSettings.hpp
-    GUI/GUI_ObjectLayers.cpp
-    GUI/GUI_ObjectLayers.hpp
-    GUI/MeshUtils.cpp
-    GUI/MeshUtils.hpp
-    GUI/Tab.cpp
-    GUI/Tab.hpp
-    GUI/ConfigManipulation.cpp
-    GUI/ConfigManipulation.hpp
     GUI/Field.cpp
     GUI/Field.hpp
     GUI/OptionsGroup.cpp
@@ -160,40 +41,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/OG_CustomCtrl.hpp
     GUI/Anker_OG_CustomCtrl.cpp
     GUI/Anker_OG_CustomCtrl.hpp
-    GUI/BedShapeDialog.cpp
-    GUI/BedShapeDialog.hpp
-    GUI/2DBed.cpp
-    GUI/2DBed.hpp
-    GUI/3DBed.cpp
-    GUI/3DBed.hpp
-    GUI/CoordAxes.cpp
-    GUI/CoordAxes.hpp
-    GUI/Camera.cpp
-    GUI/Camera.hpp
-    GUI/CameraUtils.cpp
-    GUI/CameraUtils.hpp
     GUI/wxExtensions.cpp
     GUI/wxExtensions.hpp
-    GUI/ExtruderSequenceDialog.cpp
-    GUI/ExtruderSequenceDialog.hpp
-    GUI/WipeTowerDialog.cpp
-    GUI/WipeTowerDialog.hpp
-    GUI/RammingChart.cpp
-    GUI/RammingChart.hpp
     GUI/RemovableDriveManager.cpp
     GUI/RemovableDriveManager.hpp
-    GUI/SendSystemInfoDialog.cpp
-    GUI/SendSystemInfoDialog.hpp
-    GUI/AnkerSideBarNew.cpp
-    GUI/AnkerSideBarNew.hpp
-    GUI/SurfaceDrag.cpp
-    GUI/SurfaceDrag.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
-    GUI/ButtonsDescription.cpp
-    GUI/ButtonsDescription.hpp
-    GUI/ImGuiWrapper.hpp
-    GUI/ImGuiWrapper.cpp
 	GUI/Network/chooseDeviceFrame.h
 	GUI/Network/chooseDeviceFrame.cpp
     GUI/Network/MsgText.hpp
@@ -225,9 +78,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/ASCIIFolding.hpp
     Utils/Serial.cpp
     Utils/Serial.hpp
-    GUI/ConfigWizard.cpp
-    GUI/ConfigWizard.hpp
-    GUI/ConfigWizard_private.hpp
     GUI/MsgDialog.cpp
     GUI/MsgDialog.hpp
     GUI/UpdateDialogs.cpp
@@ -236,66 +86,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/FirmwareDialog.hpp
     GUI/PrintHostDialogs.cpp
     GUI/PrintHostDialogs.hpp
-    GUI/Jobs/Job.hpp
-    GUI/Jobs/Worker.hpp
-    GUI/Jobs/BoostThreadWorker.hpp
-    GUI/Jobs/BoostThreadWorker.cpp
-    GUI/Jobs/UIThreadWorker.hpp
-    GUI/Jobs/BusyCursorJob.hpp
-    GUI/Jobs/PlaterWorker.hpp
-    GUI/Jobs/ArrangeJob.hpp
-    GUI/Jobs/ArrangeJob.cpp
-    GUI/Jobs/CreateFontNameImageJob.cpp
-    GUI/Jobs/CreateFontNameImageJob.hpp
-    GUI/Jobs/CreateFontStyleImagesJob.cpp
-    GUI/Jobs/CreateFontStyleImagesJob.hpp
-    GUI/Jobs/EmbossJob.cpp
-    GUI/Jobs/EmbossJob.hpp
-    GUI/Jobs/RotoptimizeJob.hpp
-    GUI/Jobs/RotoptimizeJob.cpp
-    GUI/Jobs/FillBedJob.hpp
-    GUI/Jobs/FillBedJob.cpp
-    GUI/Jobs/SLAImportJob.hpp
-    GUI/Jobs/SLAImportJob.cpp
-    GUI/Jobs/ProgressIndicator.hpp
-    GUI/Jobs/NotificationProgressIndicator.hpp
-    GUI/Jobs/NotificationProgressIndicator.cpp
-    GUI/Jobs/ThreadSafeQueue.hpp
-    GUI/Jobs/SLAImportDialog.hpp
-	GUI/Jobs/OrientJob.hpp
-	GUI/Jobs/OrientJob.cpp
     GUI/ProgressStatusBar.hpp
     GUI/ProgressStatusBar.cpp
-    GUI/Mouse3DController.cpp
-    GUI/Mouse3DController.hpp
     GUI/AnkerMsgCentreDialog.cpp
     GUI/AnkerMsgCentreDialog.hpp
-    GUI/DoubleSlider.cpp
-    GUI/DoubleSlider.hpp
     GUI/Notebook.cpp
     GUI/Notebook.hpp
-    GUI/ObjectDataViewModel.cpp
-    GUI/ObjectDataViewModel.hpp
     GUI/InstanceCheck.cpp
     GUI/InstanceCheck.hpp
-    GUI/Search.cpp
-    GUI/Search.hpp
-    GUI/DailyTips.cpp
-    GUI/DailyTips.hpp
-    GUI/SlicingProgressNotification.cpp
-    GUI/SlicingProgressNotification.hpp
-    GUI/NotificationManager.cpp
-    GUI/NotificationManager.hpp
-    GUI/UnsavedChangesDialog.cpp
-    GUI/UnsavedChangesDialog.hpp
-    GUI/ExtraRenderers.cpp
-    GUI/ExtraRenderers.hpp
-    GUI/ProjectDirtyStateManager.hpp
-    GUI/ProjectDirtyStateManager.cpp
     GUI/DesktopIntegrationDialog.cpp
     GUI/DesktopIntegrationDialog.hpp
-    GUI/HintNotification.cpp
-    GUI/HintNotification.hpp
     GUI/FileArchiveDialog.cpp
     GUI/FileArchiveDialog.hpp
     GUI/Downloader.cpp
@@ -310,6 +110,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/AnkerDeviceDetails.hpp
     GUI/AnkerMoveCommands.cpp
     GUI/AnkerMoveCommands.hpp
+    GUI/AnkerTaskPanel.cpp
+    GUI/AnkerTaskPanel.hpp
+    GUI/AnkerSliceCommentDialog.cpp
+    GUI/AnkerSliceCommentDialog.hpp
+    Utils/WxFontUtils.cpp
+    Utils/WxFontUtils.hpp
 	GUI/AnkerDevice.cpp	
     GUI/AnkerDevice.hpp
     GUI/AnkerBtn.cpp
@@ -320,16 +126,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/AnkerGCodeImportDialog.cpp
     GUI/AnkerPrintFinishDialog.hpp
     GUI/AnkerPrintFinishDialog.cpp
-	GUI/AnkerTaskPanel.hpp
-	GUI/AnkerTaskPanel.cpp
 	GUI/AnkerLineEdit.hpp
 	GUI/AnkerLineEdit.cpp
     GUI/AnkerVideo.hpp
     GUI/AnkerVideo.cpp
-    GUI/AnkerGcodePreviewToolBar.hpp
-    GUI/AnkerGcodePreviewToolBar.cpp
-    GUI/AnkerGcodePreviewSideBar.hpp
-    GUI/AnkerGcodePreviewSideBar.cpp
 	GUI/AnkerAdjustItemWidget.hpp
     GUI/AnkerAdjustItemWidget.cpp
 	GUI/AnkerTextLabel.hpp
@@ -346,16 +146,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/AnkerCheckBox.hpp
     GUI/AnkerEasyPanel.cpp
     GUI/AnkerEasyPanel.hpp
-	GUI/AnkerObjectBar.hpp
-	GUI/AnkerObjectBar.cpp
-	GUI/AnkerObjectBarView.hpp
-	GUI/AnkerObjectBarView.cpp
-	GUI/AnkerObjectLayers.hpp
-	GUI/AnkerObjectLayers.cpp
-	GUI/AnkerFloatingList.hpp
-	GUI/AnkerFloatingList.cpp
-	GUI/AnkerObjectManipulator.hpp
-	GUI/AnkerObjectManipulator.cpp
 	GUI/AnkerFunctionPanel.cpp
 	GUI/AnkerFunctionPanel.h
 	GUI/Security/AnkerSecurity.cpp
@@ -451,24 +241,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/GcodeVerify/GcodeVerifyHint.cpp
     GUI/GcodeVerify/PrintCheckHint.hpp
     GUI/GcodeVerify/PrintCheckHint.cpp
-	GUI/PrinterConfigPlater/AnkerParameterPanel.hpp
-	GUI/PrinterConfigPlater/AnkerParameterPanel.cpp
-	GUI/PrinterConfigPlater/AnkerPrintParaItem.hpp
-	GUI/PrinterConfigPlater/AnkerPrintParaItem.cpp	
-	GUI/PrinterConfigPlater/AnkerParameterData.hpp
-	GUI/PrinterConfigPlater/AnkerParameterData.cpp
-    GUI/AnkerConfigDialog/AnkerConfigDialog.hpp
-	GUI/AnkerConfigDialog/AnkerConfigDialog.cpp
     GUI/WebWeak/WebDownload.hpp
     GUI/WebWeak/WebDownload.cpp
     GUI/WebWeak/WebDownloadController.hpp
     GUI/WebWeak/WebDownloadController.cpp
     GUI/WebWeak/DownLoadMessage.hpp
     GUI/WebWeak/DownLoadMessage.cpp
-    GUI/AnkerCfgTab.hpp
-    GUI/AnkerCfgTab.cpp
-    GUI/TextLines.hpp
-    GUI/TextLines.cpp
     GUI/OnlinePreset/OnlinePresetInfo.hpp
     GUI/OnlinePreset/OnlinePresetInfoTool.hpp
     GUI/OnlinePreset/OnlinePresetInfoTool.cpp
@@ -489,14 +267,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/AppUpdater.hpp
     Utils/Http.cpp
     Utils/Http.hpp
-    Utils/FixModelByWin10.cpp
-    Utils/FixModelByWin10.hpp
     Utils/OctoPrint.cpp
     Utils/OctoPrint.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
-    Utils/EmbossStyleManager.cpp
-    Utils/EmbossStyleManager.hpp
     Utils/FlashAir.cpp
     Utils/FlashAir.hpp
     Utils/FontConfigHelp.cpp
@@ -515,14 +289,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/Bonjour.cpp
     Utils/Bonjour.hpp
-    Utils/PresetUpdater.cpp
-    Utils/PresetUpdater.hpp
     Utils/Process.cpp
     Utils/Process.hpp
-    Utils/RaycastManager.cpp
-    Utils/RaycastManager.hpp
-    Utils/UndoRedo.cpp
-    Utils/UndoRedo.hpp
     Utils/HexFile.cpp
     Utils/HexFile.hpp
     Utils/TCPConsole.cpp
@@ -531,8 +299,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/WinRegistry.cpp
     Utils/WinRegistry.hpp
-    Utils/WxFontUtils.cpp
-    Utils/WxFontUtils.hpp
 	Utils/DataMangerUi.hpp
 	Utils/DataMangerUi.cpp
 	Utils/StringHelper.hpp

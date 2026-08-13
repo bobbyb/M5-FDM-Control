@@ -81,9 +81,7 @@ std::string get_mem_info(bool format_as_html)
         out << value << line_end;
     }
 
-    const Slic3r::UndoRedo::Stack &stack = wxGetApp().plater()->undo_redo_stack_main();
-    out << b_start << "RAM size reserved for the Undo / Redo stack: "  << b_end << Slic3r::format_memsize_MB(stack.get_memory_limit()) << line_end;
-    out << b_start << "RAM size occupied by the Undo / Redo stack: "  << b_end << Slic3r::format_memsize_MB(stack.memsize()) << line_end << line_end;
+    // The undo/redo stack belonged to the plater; there is no model history to report.
 
     return out.str();
 }
@@ -168,7 +166,7 @@ SysInfoDialog::SysInfoDialog()
             "</body>"
             "</html>", bgr_clr_str, text_clr_str, text_clr_str,
             blacklisted_libraries_message,
-            get_mem_info(true), wxGetApp().get_gl_info(false),
+            get_mem_info(true), wxString(),
             "<b>" + _L("Eigen vectorization supported:") + "</b> " + Eigen::SimdInstructionSetsInUse());
 
         m_opengl_info_html->SetPage(text);
@@ -225,7 +223,7 @@ void SysInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
 void SysInfoDialog::onCopyToClipboard(wxEvent &)
 {
     wxTheClipboard->Open();
-    const auto text = get_main_info(false) + "\n" + wxGetApp().get_gl_info(true);
+    const auto text = get_main_info(false);
     wxTheClipboard->SetData(new wxTextDataObject(text));
     wxTheClipboard->Close();
 }

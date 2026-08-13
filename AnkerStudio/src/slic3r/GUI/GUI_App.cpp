@@ -1,9 +1,6 @@
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Init.hpp"
-#include "GUI_ObjectList.hpp"
-#include "GUI_ObjectManipulation.hpp"
-#include "GUI_Factories.hpp"
 #include "format.hpp"
 
 // Localization headers: include libslic3r version first so everything in this file
@@ -59,10 +56,7 @@
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
-#include "3DScene.hpp"
 #include "MainFrame.hpp"
-#include "Plater.hpp"
-#include "GLCanvas3D.hpp"
 
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
@@ -72,20 +66,11 @@
 #include "../Utils/WinRegistry.hpp"
 #include "slic3r/Config/Snapshot.hpp"
 #include "slic3r/Config/AnkerCommonConfig.hpp"
-#include "ConfigSnapshotDialog.hpp"
 #include "FirmwareDialog.hpp"
 #include "Preferences.hpp"
-#include "Tab.hpp"
 // add by allen for ankerCfgDlg
-#include "AnkerCfgTab.hpp"
 #include "AnkerConfigDialog/AnkerConfigDialog.hpp"
-#include "AnkerSideBarNew.hpp"
 
-#include "slic3r/GUI/Calibration/CalibrationMaxFlowrateDialog.hpp"
-#include "slic3r/GUI/Calibration/CalibrationPresAdvDialog.hpp"
-#include "slic3r/GUI/Calibration/CalibrationTempDialog.hpp"
-#include "slic3r/GUI/Calibration/CalibrationRetractionDialog.hpp"
-#include "slic3r/GUI/Calibration/CalibrationVfaDialog.hpp"
 
 #include "SysInfoDialog.hpp"
 #include "KBShortcutsDialog.hpp"
@@ -93,12 +78,10 @@
 #include "Mouse3DController.hpp"
 #include "RemovableDriveManager.hpp"
 #include "InstanceCheck.hpp"
-#include "NotificationManager.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "DesktopIntegrationDialog.hpp"
-#include "SendSystemInfoDialog.hpp"
 #include "Downloader.hpp"
 
 #include "BitmapCache.hpp"
@@ -136,7 +119,6 @@
 #include "AnkerNetModule/HttpTool.h"
 #include "AnkerNetBase.h"
 #include <slic3r/GUI/AnkerNetModule/AnkerNetDownloadDialog.h>
-#include "HintNotification.hpp"
 #include <slic3r/Config/AnkerCommonConfig.hpp>
 #include <slic3r/Utils/wxFileTool.hpp>
 
@@ -170,7 +152,7 @@ extern wxString WrapEveryCharacter(const wxString& str, wxFont font, const int& 
 	//if (currentLanguage<= wxLANGUAGE_ENGLISH_ZIMBABWE && currentLanguage>= wxLANGUAGE_ENGLISH)
 	//	return str;
 
-	wxClientDC dc(Slic3r::GUI::wxGetApp().plater());
+	wxScreenDC dc;   // was a client DC on the plater; only font metrics are needed
 	dc.SetFont(font);
 	wxSize size = dc.GetTextExtent(str);
 
@@ -213,7 +195,7 @@ extern wxString WrapEveryCharacter(const wxString& str, wxFont font, const int& 
 
 extern wxString WrapFixWidth(const wxString& str, wxFont font, const int& lineLength)
 {
-    wxClientDC dc(Slic3r::GUI::wxGetApp().plater());
+    wxScreenDC dc;   // was a client DC on the plater; only font metrics are needed
     dc.SetFont(font);
     wxSize size = dc.GetTextExtent(str);
 
@@ -237,7 +219,7 @@ extern wxString WrapFixWidth(const wxString& str, wxFont font, const int& lineLe
 
 extern wxString WrapFixWidthAdvance(const wxString& str, wxFont font, const int& lineLength, std::string language)
 {
-    wxClientDC dc(Slic3r::GUI::wxGetApp().plater());
+    wxScreenDC dc;   // was a client DC on the plater; only font metrics are needed
     dc.SetFont(font);
     wxSize size = dc.GetTextExtent(str);
 
@@ -282,7 +264,7 @@ extern wxString WrapFixWidthAdvance(const wxString& str, wxFont font, const int&
 
 extern wxString WrapFixWidthAdvance(const wxString& str, wxFont font, const int& lineLength)
 {
-    wxClientDC dc(Slic3r::GUI::wxGetApp().plater());
+    wxScreenDC dc;   // was a client DC on the plater; only font metrics are needed
     dc.SetFont(font);
     wxSize size = dc.GetTextExtent(str);
 
@@ -989,9 +971,9 @@ static void generic_exception_handle()
 
 void GUI_App::request_model_download(std::string url)
 {
-    if (plater_) {
-        plater_->request_model_download(url);
-    }
+    // Model download landed the file on the plater. With no plater there is nowhere
+    // for it to go, so this is a no-op rather than a silent half-action.
+    ANKER_LOG_INFO << "model download ignored, no plater in this build: " << url;
 }
 
 void GUI_App::post_init()
@@ -1000,11 +982,7 @@ void GUI_App::post_init()
     if (! this->initialized())
         throw Slic3r::RuntimeError("Calling post_init() while not yet initialized");
 
-    if (this->is_gcode_viewer()) {
-        if (! this->init_params->input_files.empty())
-            this->plater()->load_gcode(wxString::FromUTF8(this->init_params->input_files[0].c_str()));
-    }
-    else if (this->init_params->start_downloader) {
+    if (this->init_params->start_downloader) {
         start_download(this->init_params->download_url);
     } else {
         if (! this->init_params->preset_substitutions.empty())
@@ -1024,23 +1002,10 @@ void GUI_App::post_init()
             //FIXME this is not strictly correct, as one may pass a print/filament/printer profile here instead of a full config.
             ; // config loading removed with the slicer
         // If loading a 3MF file, the config is loaded from the last one.
+        // Model/project files on the command line were loaded into the plater; there
+        // is nothing to load them into now. The delete-after-load contract is still
+        // honoured so callers that pass temporary files do not leak them.
         if (!this->init_params->input_files.empty()) {
-#if 1 // #ysFIXME_delete_after_test_of
-            wxArrayString fns;
-            for (const std::string& name : this->init_params->input_files)
-                fns.Add(from_u8(name));
-            if (plater()->load_files(fns) && this->init_params->input_files.size() == 1) {
-#else
-            const std::vector<size_t> res = this->plater()->load_files(this->init_params->input_files, true, true);
-            if (!res.empty() && this->init_params->input_files.size() == 1) {
-#endif
-                // Update application titlebar when opening a project file
-                const std::string& filename = this->init_params->input_files.front();
-                if (boost::algorithm::iends_with(filename, ".amf") ||
-                    boost::algorithm::iends_with(filename, ".amf.xml") ||
-                    boost::algorithm::iends_with(filename, ".3mf"))
-                    this->plater()->set_project_filename(from_u8(filename));
-            }
             if (this->init_params->delete_after_load) {
                 for (const std::string& p : this->init_params->input_files) {
                     boost::system::error_code ec;
@@ -1071,9 +1036,8 @@ void GUI_App::post_init()
      //        return;
      //    CallAfter([this] {
      //        // preset_updater->sync downloads profile updates on background so it must begin after config wizard finished.
-     //        bool cw_showed = this->config_wizard_startup();
-     //        this->preset_updater->sync(preset_bundle);
-     //        if (! cw_showed) {
+     //        bool cw_showed = false;   // no configuration wizard without presets
+     //        //        if (! cw_showed) {
      //            // The CallAfter is needed as well, without it, GL extensions did not show.
      //            // Also, we only want to show this when the wizard does not, so the new user
      //            // sees something else than "we want something" on the first start.
@@ -1085,13 +1049,12 @@ void GUI_App::post_init()
      //}
 
 
-     bool cw_showed = this->config_wizard_startup();
-     this->preset_updater->sync(preset_bundle);
+     bool cw_showed = false;   // no configuration wizard without presets
      if (!cw_showed) {
          // The CallAfter is needed as well, without it, GL extensions did not show.
          // Also, we only want to show this when the wizard does not, so the new user
          // sees something else than "we want something" on the first start.
-         show_send_system_info_dialog_if_needed();
+         // system-info telemetry dialog reported OpenGL details; removed with the 3D view
      }
 
 
@@ -1111,7 +1074,6 @@ GUI_App::GUI_App(EAppMode mode)
     : wxApp()
     , m_app_mode(mode)
     , m_em_unit(10)
-    , m_imgui(new ImGuiWrapper())
 	, m_removable_drive_manager(std::make_unique<RemovableDriveManager>())
 	, m_other_instance_message_handler(std::make_unique<OtherInstanceMessageHandler>())
     , m_downloader(std::make_unique<Downloader>())
@@ -1130,38 +1092,14 @@ GUI_App::~GUI_App()
 {
     delete app_config;
     delete preset_bundle;
-    delete preset_updater;
     m_bDelLogTimerStop.store(true);
     m_bReadUrlStop.store(true);
 }
 
 // If formatted for github, plaintext with OpenGL extensions enclosed into <details>.
 // Otherwise HTML formatted for the system info dialog.
-std::string GUI_App::get_gl_info(bool for_github)
-{
-    return OpenGLManager::get_gl_info().to_string(for_github);
-}
 
-wxGLContext* GUI_App::init_glcontext(wxGLCanvas& canvas)
-{
-#if ENABLE_GL_CORE_PROFILE
-#if ENABLE_OPENGL_DEBUG_OPTION
-    return m_opengl_mgr.init_glcontext(canvas, init_params != nullptr ? init_params->opengl_version : std::make_pair(0, 0),
-        init_params != nullptr ? init_params->opengl_debug : false);
-#else
-    return m_opengl_mgr.init_glcontext(canvas, init_params != nullptr ? init_params->opengl_version : std::make_pair(0, 0));
-#endif // ENABLE_OPENGL_DEBUG_OPTION
-#else
-    return m_opengl_mgr.init_glcontext(canvas);
-#endif // ENABLE_GL_CORE_PROFILE
-}
 
-bool GUI_App::init_opengl()
-{
-    bool status = m_opengl_mgr.init_gl();
-    m_opengl_initialized = true;
-    return status;
-}
 
 // gets path to AnkerStudio.ini, returns semver from first line comment
 static boost::optional<Semver> parse_semver_from_ini(std::string path)
@@ -1811,7 +1749,6 @@ bool GUI_App::on_init_inner()
     onlinePresetManager()->CheckAndUpdate();
     
     DatamangerUi::GetInstance().LoadNetLibrary(nullptr, true);
-    HintDatabase::get_instance().reinit();
     SplashScreen* scrn = nullptr;
     if (app_config->get_bool("show_splash_screen")) {
         // make a bitmap with dark grey banner on the left side
@@ -1872,33 +1809,13 @@ bool GUI_App::on_init_inner()
             associate_stl_files();
 #endif // __WXMSW__
         
-        preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, &GUI_App::on_version_read, this);
-        Bind(EVT_SLIC3R_EXPERIMENTAL_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-            if (this->plater_ != nullptr && (m_app_updater->get_triggered_by_user() || app_config->get("notify_release") == "all")) {
-                std::string evt_string = into_u8(evt.GetString());
-                if (*Semver::parse(SLIC3R_VERSION) < *Semver::parse(evt_string)) {
-
-       //comment by Samuel 20231106, Discarded  unused notification text
-      /*              auto notif_type = (evt_string.find("beta") != std::string::npos ? NotificationType::NewBetaAvailable : NotificationType::NewAlphaAvailable);
-                    this->plater_->get_notification_manager()->push_version_notification( notif_type
-                        , NotificationManager::NotificationLevel::ImportantNotificationLevel
-                        , Slic3r::format(_u8L("New prerelease version %1% is available."), evt_string)
-                        , _u8L("See Releases page.")
-                        , [](wxEvtHandler* evnthndlr) {wxGetApp().open_browser_with_warning_dialog("https://github.com/prusa3d/PrusaSlicer/releases"); return true; }
-                    );*/
-                }
-            }
-            });
-        Bind(EVT_SLIC3R_APP_DOWNLOAD_PROGRESS, [this](const wxCommandEvent& evt) {
-            //lm:This does not force a render. The progress bar only updateswhen the mouse is moved.
-            if (this->plater_ != nullptr)
-                this->plater_->get_notification_manager()->set_download_progress_percentage((float)std::stoi(into_u8(evt.GetString())) / 100.f );
-        });
-
+        // The prerelease-version notification was already dead code upstream (its body
+        // is commented out), and the notification manager it posted to lived on the
+        // plater. Nothing to bind.
+        // Download progress was drawn by the plater's notification manager; only the
+        // failure path had anything the user could still see, so keep that.
         Bind(EVT_SLIC3R_APP_DOWNLOAD_FAILED, [this](const wxCommandEvent& evt) {
-            if (this->plater_ != nullptr)
-                this->plater_->get_notification_manager()->close_notification_of_type(NotificationType::AppDownload);
             if(!evt.GetString().IsEmpty())
                 show_error(nullptr, evt.GetString());
         });
@@ -1954,43 +1871,17 @@ bool GUI_App::on_init_inner()
     /*if (is_editor())
         ; // select_tab() removed with the preset tabs*/
 
-    sidebarnew().object_list()->init_objects(); // propagate model objects to object list
-//     update_mode(); // !!! do that later
-   
-
-    plater_->init_notification_manager();
+    // The object list, the notification manager, the print-host job queue and the
+    // whole project-dirty/preset bookkeeping all belonged to the plater. There is no
+    // project and no presets in this build, so none of it is set up.
 
     m_printhost_job_queue.reset(new PrintHostJobQueue(mainframe->printhost_queue_dlg()));
-
-    if (is_gcode_viewer()) {
-        mainframe->update_layout();
-        if (plater_ != nullptr)
-            // ensure the selected technology is ptFFF
-            plater_->set_printer_technology(ptFFF);
-    }
-    else
-        load_current_presets();
-
-    // Save the active profiles as a "saved into project".
-    update_saved_preset_from_current_preset();
-
-    if (plater_ != nullptr) {
-        // Save the names of active presets and project specific config into ProjectDirtyStateManager.
-        plater_->reset_project_dirty_initial_presets();
-        // Update Project dirty state, update application title bar.
-        plater_->update_project_dirty_from_presets();
-    }
 
     //ANKER_LOG_INFO << "createAnkerCfgDlg start";
     //mainframe->createAnkerCfgDlg();
     //ANKER_LOG_INFO << "createAnkerCfgDlg end";
 
-    ANKER_LOG_DEBUG << "on_set_focus start";
-    auto tmpEvent = wxFocusEvent();
-    mainframe->m_plater->canvas3D()->set_force_on_screen(true);
-    mainframe->m_plater->canvas3D()->on_set_focus(tmpEvent);
-    mainframe->m_plater->canvas3D()->set_force_on_screen(false);
-    ANKER_LOG_DEBUG << "on_set_focus end";
+    // The 3D canvas focus dance went with the plater; there is no GL canvas to warm up.
 
     mainframe->buryTime();
     mainframe->Show(true);
@@ -2060,18 +1951,13 @@ bool GUI_App::on_init_inner()
 
     //obj_list()->set_min_height();
 
-    update_mode(); // update view mode after fix of the object_list size
 
 #ifdef __APPLE__
     other_instance_message_handler()->bring_instance_forward();
 #endif //__APPLE__
 
     Bind(wxEVT_IDLE, [this](wxIdleEvent& event) {
-        if (! plater_)
-            return;
-
-        //this->obj_manipul()->update_if_dirty();
-        this->aobj_manipul()->update_if_dirty();
+        // The object-manipulation panel it drove went with the 3D view.
 
         // show download net lib, if need
         static bool comeOnce = true;
@@ -2203,16 +2089,6 @@ void GUI_App::update_ui_colours_from_appconfig()
     }
 }
 
-void GUI_App::update_label_colours()
-{
-#if SHOW_OLD_SETTING_DIALOG
-    for (Tab* tab : tabs_list)
-        tab->update_label_colours();
-#endif
-    // add by allen for ankerCfgDlg
-    for (AnkerTab* tab : ankerTabsList)
-        tab->update_label_colours();
-}
 
 #ifdef _WIN32
 static bool is_focused(HWND hWnd)
@@ -2509,26 +2385,6 @@ void GUI_App::set_auto_toolbar_icon_scale(float scale) const
 }
 
 // check user printer_presets for the containing information about "Print Host upload"
-void GUI_App::check_printer_presets()
-{
-    std::vector<std::string> preset_names = PhysicalPrinter::presets_with_print_host_information(preset_bundle->printers);
-    if (preset_names.empty())
-        return;
-
-    wxString msg_text =  _L("You have the following presets with saved options for \"Print Host upload\"") + ":";
-    for (const std::string& preset_name : preset_names)
-        msg_text += "\n    \"" + from_u8(preset_name) + "\",";
-    msg_text.RemoveLast();
-    msg_text += "\n\n" + _L("But since this version of M5 FDM Control we don't show this information in Printer Settings anymore.\n"
-                            "Settings will be available in physical printers settings.") + "\n\n" +
-                         _L("By default new Printer devices will be named as \"Printer N\" during its creation.\n"
-                            "Note: This name can be changed later from the physical printers settings");
-
-    //wxMessageDialog(nullptr, msg_text, _L("Information"), wxOK | wxICON_INFORMATION).ShowModal();
-    MessageDialog(nullptr, msg_text, _L("Information"), wxOK | wxICON_INFORMATION).ShowModal();
-
-    preset_bundle->physical_printers.load_printers_from_presets(preset_bundle->printers);
-}
 
 void GUI_App::recreate_GUI(const wxString& msg_name)
 {
@@ -2549,22 +2405,17 @@ void GUI_App::recreate_GUI(const wxString& msg_name)
     if (is_editor())
         // hide settings tabs after first Layout
         ; // select_tab() removed with the preset tabs
-    // Propagate model objects to object list.
-    sidebarnew().object_list()->init_objects();
     SetTopWindow(mainframe);
 
     dlg.Update(30, _L("Recreating") + dots);
     old_main_frame->Destroy();
 
-    dlg.Update(80, _L("Loading of current presets") + dots);
+    dlg.Update(80, _L("Loading") + dots);
     m_printhost_job_queue.reset(new PrintHostJobQueue(mainframe->printhost_queue_dlg()));
-    load_current_presets();
     mainframe->Show(true);
 
     dlg.Update(90, _L("Loading of a mode view") + dots);
 
-    //obj_list()->set_min_height();
-    update_mode();
 
     // #ys_FIXME_delete_after_testing  Do we still need this  ?
 //     CallAfter([]() {
@@ -2656,7 +2507,6 @@ void GUI_App::force_colors_update()
 // Update the UI based on the current preferences.
 void GUI_App::update_ui_from_settings()
 {
-    update_label_colours();
 #ifdef _WIN32
     // Upadte UI colors before Update UI from settings
     if (m_force_colors_update) {
@@ -2744,35 +2594,8 @@ void GUI_App::load_gcode(wxWindow* parent, wxString& input_file) const
         input_file = dialog.GetPath();
 }
 
-void GUI_App::calib_filament_temperature_dialog(wxWindow* parent, Plater* plater)
-{
-    auto dlg = new CalibrationTempDialog(parent, wxID_ANY, plater);
-    dlg->ShowModal();
-}
-
-void GUI_App::calib_pressure_advance_dialog(wxWindow* parent, Plater* plater)
-{
-    auto dlg = new CalibrationPresAdvDialog(parent, wxID_ANY, plater);
-    dlg->ShowModal();
-}
-
-void GUI_App::calib_retraction_dialog(wxWindow* parent, Plater* plater)
-{
-    auto dlg = new CalibrationRetractionDialog(parent, wxID_ANY, plater);
-    dlg->ShowModal();
-}
-
-void GUI_App::calib_max_flowrate_dialog(wxWindow* parent, Plater* plater)
-{
-    auto dlg = new CalibrationMaxFlowrateDialog(parent, wxID_ANY, plater);
-    dlg->ShowModal();
-}
-
-void GUI_App::calib_vfa_dialog(wxWindow* parent, Plater* plater)
-{
-    auto dlg = new CalibrationVfaDialog(parent, wxID_ANY, plater);
-    dlg->ShowModal();
-}
+// The calibration dialogs went with the Calibration menu: each loaded its test
+// model into the plater.
 
 bool GUI_App::switch_language()
 {
@@ -3162,7 +2985,7 @@ bool GUI_App::load_language(wxString language, bool initial)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
     m_wxLocale->AddCatalog(SLIC3R_APP_KEY);
-    m_imgui->set_language(into_u8(language_info->CanonicalName));
+    // no ImGui overlay to re-language
     //FIXME This is a temporary workaround, the correct solution is to switch to "C" locale during file import / export only.
     //wxSetlocale(LC_NUMERIC, "C");
     Preset::update_suffix_modified((" (" + _L("modified") + ")").ToUTF8().data());
@@ -3171,24 +2994,8 @@ bool GUI_App::load_language(wxString language, bool initial)
 	return true;
 }
 
-Tab* GUI_App::get_tab(Preset::Type type)
-{
-    for (Tab* tab: tabs_list)
-        if (tab->type() == type)
-            return tab->completed() ? tab : nullptr; // To avoid actions with no-completed Tab
-    return nullptr;
-}
 
 // add by allen for ankerCfgDlg
-AnkerTab* GUI_App::getAnkerTab(Preset::Type type) {
-    // add by allen, we must new AnkerConfigDlg in here to solve the problem of item showed in taskbar;
-    mainframe->createAnkerCfgDlg();
-   
-    for (AnkerTab* tab : ankerTabsList)
-        if (tab->type() == type)
-            return tab->completed() ? tab : nullptr; // To avoid actions with no-completed Tab
-    return nullptr;
-}
 
 ConfigOptionMode GUI_App::get_mode()
 {
@@ -3206,69 +3013,23 @@ bool GUI_App::save_mode(const /*ConfigOptionMode*/int mode)
     const std::string mode_str = mode == comExpert ? "expert" :
                                  mode == comSimple ? "simple" : "advanced";
 
-    auto can_switch_to_simple = [](Model& model) {
-        for (const ModelObject* model_object : model.objects)
-            if (model_object->volumes.size() > 1) {
-                for (size_t i = 1; i < model_object->volumes.size(); ++i)
-                    if (!model_object->volumes[i]->is_support_modifier())
-                        return false;
-            }
-        return true;
-    };
-
-    if (mode == comSimple && !can_switch_to_simple(model())) {
-        show_info(nullptr,
-            _L("Simple mode supports manipulation with single-part object(s)\n"
-            "or object(s) with support modifiers only.") + "\n\n" +
-            _L("Please check your object list before mode changing."),
-            _L("Change application mode"));
-        return false;
-    }
+    // The simple-mode guard inspected the model's objects; there is no model.
     app_config->set("view_mode", mode_str);
-    update_mode();
     return true;
 }
 
 // Update view mode according to selected menu
-void GUI_App::update_mode()
-{
-   // sidebar().update_mode();
-    // add by allen for ankerCfgDlg search
-    sidebarnew().update_mode();
-
-#ifdef _WIN32 //_MSW_DARK_MODE
-    if (!wxGetApp().tabs_as_menu()) {
-        //dynamic_cast<Notebook*>(mainframe->m_tabpanel)->UpdateMode();
-        // add by allen for ankerCfgDlg
-        if (mainframe->m_ankerCfgDlg && mainframe->m_ankerCfgDlg->m_rightPanel) {
-            dynamic_cast<Notebook*>(mainframe->m_ankerCfgDlg->m_rightPanel)->UpdateMode();
-        }   
-    }
-        
-#endif
-#if SHOW_OLD_SETTING_DIALOG
-    for (auto tab : tabs_list)
-        tab->update_mode();
-#endif
-    // add by allen for ankerCfgDlg
-    for (auto tab : ankerTabsList)
-        tab->update_mode();
-
-    plater()->update_menus();
-    plater()->canvas3D()->update_gizmos_on_off_state();
-}
 
 void GUI_App::add_config_menu(wxMenuBar *menu)
 {
     auto local_menu = new wxMenu();
     wxWindowID config_id_base = wxWindow::NewControlId(int(ConfigMenuCnt));
 
-    const wxString config_wizard_name = _(ConfigWizard::name(true));
+    const wxString config_wizard_name = _L("Configuration Wizard");
     const wxString config_wizard_tooltip = from_u8((boost::format(_u8L("Run %s")) % config_wizard_name).str());
     // Cmd+, is standard on OS X - what about other operating systems?
     if (is_editor()) {
         local_menu->Append(config_id_base + ConfigMenuWizard, config_wizard_name + dots, config_wizard_tooltip);
-        local_menu->Append(config_id_base + ConfigMenuSnapshots, _L("&Configuration Snapshots") + dots, _L("Inspect / activate configuration snapshots"));
         local_menu->Append(config_id_base + ConfigMenuTakeSnapshot, _L("Take Configuration &Snapshot"), _L("Capture a configuration snapshot"));
         PresetBundle::BoolAnkerMain ? nullptr : local_menu->Append(config_id_base + ConfigMenuUpdateConf, _L("Check for Configuration Updates"), _L("Check for configuration updates"));
         PresetBundle::BoolAnkerMain ? nullptr : local_menu->Append(config_id_base + ConfigMenuUpdateApp, _L("Check for Application Updates"), _L("Check for new version of application"));
@@ -3311,7 +3072,7 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
     local_menu->Bind(wxEVT_MENU, [this, config_id_base](wxEvent &event) {
         switch (event.GetId() - config_id_base) {
         case ConfigMenuWizard:
-            run_wizard(ConfigWizard::RR_USER);
+            // no configuration wizard without presets
             break;
 		case ConfigMenuUpdateConf:
             // TODO: preset update
@@ -3326,54 +3087,8 @@ void GUI_App::add_config_menu(wxMenuBar *menu)
             show_desktop_integration_dialog();
             break;
 #endif
-        case ConfigMenuTakeSnapshot:
-            // Take a configuration snapshot.
-            if (wxString action_name = _L("Taking a configuration snapshot");
-                check_and_save_current_preset_changes(action_name, _L("Some presets are modified and the unsaved changes will not be captured by the configuration snapshot."), false, true)) {
-                wxTextEntryDialog dlg(nullptr, action_name, _L("Snapshot name"));
-                UpdateDlgDarkUI(&dlg);
-                
-                // set current normal font for dialog children, 
-                // because of just dlg.SetFont(normal_font()) has no result;
-                for (auto child : dlg.GetChildren())
-                    child->SetFont(normal_font());
-
-                if (dlg.ShowModal() == wxID_OK)
-                    if (const Config::Snapshot *snapshot = Config::take_config_snapshot_report_error(
-                            *app_config, Config::Snapshot::SNAPSHOT_USER, dlg.GetValue().ToUTF8().data());
-                        snapshot != nullptr)
-                        app_config->set("on_snapshot", snapshot->id);
-            }
-            break;
-        case ConfigMenuSnapshots:
-            if (check_and_save_current_preset_changes(_L("Loading a configuration snapshot"), "", false)) {
-                std::string on_snapshot;
-                if (Config::SnapshotDB::singleton().is_on_snapshot(*app_config))
-                    on_snapshot = app_config->get("on_snapshot");
-                ConfigSnapshotDialog dlg(Slic3r::GUI::Config::SnapshotDB::singleton(), on_snapshot);
-                dlg.ShowModal();
-                if (!dlg.snapshot_to_activate().empty()) {
-                    if (! Config::SnapshotDB::singleton().is_on_snapshot(*app_config) && 
-                        ! Config::take_config_snapshot_cancel_on_error(*app_config, Config::Snapshot::SNAPSHOT_BEFORE_ROLLBACK, "",
-                                GUI::format(_L("Continue to activate a configuration snapshot %1%?"), dlg.snapshot_to_activate())))
-                        break;
-                    try {
-                        app_config->set("on_snapshot", Config::SnapshotDB::singleton().restore_snapshot(dlg.snapshot_to_activate(), *app_config).id);
-                        // Enable substitutions, log both user and system substitutions. There should not be any substitutions performed when loading system
-                        // presets because compatibility of profiles shall be verified using the min_slic3r_version keys in config index, but users
-                        // are known to be creative and mess with the config files in various ways.
-                        if (PresetsConfigSubstitutions all_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable);
-                            ! all_substitutions.empty())
-                            show_substitutions_info(all_substitutions);
-
-                        // Load the currently selected preset into the GUI, update the preset selection box.
-                        load_current_presets();
-                    } catch (std::exception &ex) {
-                        GUI::show_error(nullptr, _L("Failed to activate configuration snapshot.") + "\n" + into_u8(ex.what()));
-                    }
-                }
-            }
-            break;
+        // ConfigMenuTakeSnapshot removed: a snapshot captures preset state.
+        // ConfigMenuSnapshots removed: configuration snapshots are preset state.
         case ConfigMenuPreferences:
         {
             open_preferences();
@@ -3436,7 +3151,7 @@ void GUI_App::open_preferences(const std::string& highlight_option /*= std::stri
 #else
     if (mainframe->preferences_dialog->seq_top_layer_only_changed())
 #endif // ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-        this->plater_->refresh_print();
+        ;   // was plater_->refresh_print(): nothing to re-slice
 
 #ifdef _WIN32
     if (is_editor()) {
@@ -3459,72 +3174,9 @@ void GUI_App::open_preferences(const std::string& highlight_option /*= std::stri
     }
 }
 
-bool GUI_App::has_unsaved_preset_changes() const
-{
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-    for (const Tab* const tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology) && tab->saved_preset_is_dirty())
-            return true;
-    }
-#endif
-    // add by allen for ankerCfgDlg
-    for (const AnkerTab* const tab : ankerTabsList) {
-        if (tab->supports_printer_technology(printer_technology) && tab->saved_preset_is_dirty())
-            return true;
-    }
 
-    return false;
-}
 
-bool GUI_App::has_current_preset_changes() const
-{
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-    for (const Tab* const tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-            return true;
-    }
-#endif
-    // add by allen for ankerCfgDlg
-    for (const AnkerTab* const tab : ankerTabsList) {
-        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-            return true;
-    }
-    return false;
-}
 
-void GUI_App::update_saved_preset_from_current_preset()
-{
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-    for (Tab* tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology))
-            tab->update_saved_preset_from_current_preset();
-    }
-#endif
-    // add by allen for ankerCfgDlg
-    for (AnkerTab* tab : ankerTabsList) {
-        if (tab->supports_printer_technology(printer_technology))
-            tab->update_saved_preset_from_current_preset();
-    }
-}
-
-std::vector<const PresetCollection*> GUI_App::get_active_preset_collections() const
-{
-    std::vector<const PresetCollection*> ret;
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-    for (const Tab* tab : tabs_list)
-        if (tab->supports_printer_technology(printer_technology))
-            ret.push_back(tab->get_presets());
-#endif
-    // add by allen for ankerCfgDlg
-    for (const AnkerTab* tab : ankerTabsList)
-        if (tab->supports_printer_technology(printer_technology))
-            ret.push_back(tab->get_presets());
-    return ret;
-}
 
 // To notify the user whether he is aware that some preset changes will be lost,
 // UnsavedChangesDialog: "Discard / Save / Cancel"
@@ -3538,52 +3190,7 @@ std::vector<const PresetCollection*> GUI_App::get_active_preset_collections() co
 // This is called when:
 // - Exporting config_bundle
 // - Taking snapshot
-bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice/* = true*/, bool dont_save_insted_of_discard/* = false*/)
-{
-    if (has_current_preset_changes()) {
-        const std::string app_config_key = remember_choice ? "default_action_on_close_application" : "";
-        int act_buttons = ActionButtons::SAVE;
-        if (dont_save_insted_of_discard)
-            act_buttons |= ActionButtons::DONT_SAVE;
-        UnsavedChangesDialog dlg(caption, header, app_config_key, act_buttons);
-        std::string act = app_config_key.empty() ? "none" : wxGetApp().app_config->get(app_config_key);
-        if (act == "none" && dlg.ShowModal() == wxID_CANCEL)
-            return false;
 
-        if (dlg.save_preset())  // save selected changes
-        {
-            for (const std::pair<std::string, Preset::Type>& nt : dlg.get_names_and_types())
-                preset_bundle->save_changes_for_preset(nt.first, nt.second, dlg.get_unselected_options(nt.second));
-
-            load_current_presets(false);
-
-            // if we saved changes to the new presets, we should to 
-            // synchronize config.ini with the current selections.
-            preset_bundle->export_selections(*app_config);
-
-            MessageDialog(nullptr, dlg.msg_success_saved_modifications(dlg.get_names_and_types().size())).ShowModal();
-        }
-    }
-
-    return true;
-}
-
-void GUI_App::apply_keeped_preset_modifications()
-{
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-    for (Tab* tab : tabs_list) {
-        if (tab->supports_printer_technology(printer_technology))
-            tab->apply_config_from_cache();
-    }
-#endif
-    // add by allen for ankerCfgDlg
-    for (AnkerTab* tab : ankerTabsList) {
-        if (tab->supports_printer_technology(printer_technology))
-            tab->apply_config_from_cache();
-    }
-    load_current_presets(false);
-}
 
 // This is called when creating new project or load another project
 // OR close ConfigWizard
@@ -3592,115 +3199,7 @@ void GUI_App::apply_keeped_preset_modifications()
 //                      => Current project isn't saved => UnsavedChangesDialog: "Keep / Discard / Save / Cancel"
 // Close ConfigWizard   => Current project is saved    => UnsavedChangesDialog: "Keep / Discard / Save / Cancel"
 // Note: no_nullptr postponed_apply_of_keeped_changes indicates that thie function is called after ConfigWizard is closed
-bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, const wxString& header, int action_buttons, bool* postponed_apply_of_keeped_changes/* = nullptr*/)
-{
-    if (has_current_preset_changes()) {
-        bool is_called_from_configwizard = postponed_apply_of_keeped_changes != nullptr;
 
-        const std::string app_config_key = is_called_from_configwizard ? "" : "default_action_on_new_project";
-        UnsavedChangesDialog dlg(caption, header, app_config_key, action_buttons);
-        std::string act = app_config_key.empty() ? "none" : wxGetApp().app_config->get(app_config_key);
-        if (act == "none" && dlg.ShowModal() == wxID_CANCEL)
-            return false;
-
-        auto reset_modifications = [this, is_called_from_configwizard]() {
-            if (is_called_from_configwizard)
-                return; // no need to discared changes. It will be done fromConfigWizard closing
-
-            PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-#if SHOW_OLD_SETTING_DIALOG
-            for (const Tab* const tab : tabs_list) {
-                if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-                    tab->m_presets->discard_current_changes();
-            }
-#endif
-            // add by allen for ankerCfgDlg
-            for (const AnkerTab* const tab : ankerTabsList) {
-                if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-                    tab->m_presets->discard_current_changes();
-            }
-            load_current_presets(false);
-        };
-
-        if (dlg.discard())
-            reset_modifications();
-        else  // save selected changes
-        {
-            const auto& preset_names_and_types = dlg.get_names_and_types();
-            if (dlg.save_preset()) {
-                for (const std::pair<std::string, Preset::Type>& nt : preset_names_and_types)
-                    preset_bundle->save_changes_for_preset(nt.first, nt.second, dlg.get_unselected_options(nt.second));
-
-                // if we saved changes to the new presets, we should to 
-                // synchronize config.ini with the current selections.
-                preset_bundle->export_selections(*app_config);
-
-                wxString text = dlg.msg_success_saved_modifications(preset_names_and_types.size());
-                if (!is_called_from_configwizard)
-                    text += "\n\n" + _L("For new project all modifications will be reseted");
-
-                MessageDialog(nullptr, text).ShowModal();
-                reset_modifications();
-            }
-            else if (dlg.transfer_changes() && (dlg.has_unselected_options() || is_called_from_configwizard)) {
-                // execute this part of code only if not all modifications are keeping to the new project 
-                // OR this function is called when ConfigWizard is closed and "Keep modifications" is selected
-                for (const std::pair<std::string, Preset::Type>& nt : preset_names_and_types) {
-                    Preset::Type type = nt.second;
-                    Tab* tab = get_tab(type);
-                    std::vector<std::string> selected_options = dlg.get_selected_options(type);
-                    if (type == Preset::TYPE_PRINTER) {
-                        auto it = std::find(selected_options.begin(), selected_options.end(), "extruders_count");
-                        if (it != selected_options.end()) {
-                            // erase "extruders_count" option from the list
-                            selected_options.erase(it);
-                            // cache the extruders count
-                            static_cast<TabPrinter*>(tab)->cache_extruder_cnt();
-                        }
-                    }
-                    tab->cache_config_diff(selected_options);
-                    if (!is_called_from_configwizard)
-                        tab->m_presets->discard_current_changes();
-                }
-                // add by allen for ankerCfgDlg
-                for (const std::pair<std::string, Preset::Type>& nt : preset_names_and_types) {
-                    Preset::Type type = nt.second;
-                    AnkerTab* tab = getAnkerTab(type);
-                    std::vector<std::string> selected_options = dlg.get_selected_options(type);
-                    if (type == Preset::TYPE_PRINTER) {
-                        auto it = std::find(selected_options.begin(), selected_options.end(), "extruders_count");
-                        if (it != selected_options.end()) {
-                            // erase "extruders_count" option from the list
-                            selected_options.erase(it);
-                            // cache the extruders count
-                            static_cast<AnkerTabPrinter*>(tab)->cache_extruder_cnt();
-                        }
-                    }
-                    tab->cache_config_diff(selected_options);
-                    if (!is_called_from_configwizard)
-                        tab->m_presets->discard_current_changes();
-                }
-
-                if (is_called_from_configwizard)
-                    *postponed_apply_of_keeped_changes = true;
-                else
-                    apply_keeped_preset_modifications();
-            }
-        }
-    }
-
-    return true;
-}
-
-bool GUI_App::can_load_project()
-{
-    int saved_project = plater()->save_project_if_dirty(_L("Loading a new project while the current project is modified."));
-    if (saved_project == wxID_CANCEL ||
-        (plater()->is_project_dirty() && saved_project == wxID_NO && 
-         !check_and_save_current_preset_changes(_L("Project is loading"), _L("Opening new project while some presets are unsaved."))))
-        return false;
-    return true;
-}
 
 bool GUI_App::check_print_host_queue()
 {
@@ -3730,55 +3229,10 @@ bool GUI_App::check_print_host_queue()
     return false;
 }
 
-bool GUI_App::checked_tab(Tab* tab)
-{
-    bool ret = true;
-    if (find(tabs_list.begin(), tabs_list.end(), tab) == tabs_list.end())
-        ret = false;
-    return ret;
-}
 
 // add by allen for ankerCfgDlg
-bool GUI_App::checkedAnkerTab(AnkerTab* tab)
-{
-    bool ret = true;
-    if (find(ankerTabsList.begin(), ankerTabsList.end(), tab) == ankerTabsList.end())
-        ret = false;
-    return ret;
-}
 
 // Update UI / Tabs to reflect changes in the currently loaded presets
-void GUI_App::load_current_presets(bool check_printer_presets_ /*= true*/)
-{
-    // check printer_presets for the containing information about "Print Host upload"
-    // and create physical printer from it, if any exists
-    if (check_printer_presets_)
-        check_printer_presets();
-
-    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-	this->plater()->set_printer_technology(printer_technology);
-#if SHOW_OLD_SETTING_DIALOG
-    for (Tab *tab : tabs_list)
-		if (tab->supports_printer_technology(printer_technology)) {
-			if (tab->type() == Preset::TYPE_PRINTER) {
-				static_cast<TabPrinter*>(tab)->update_pages();
-				// Mark the plater to update print bed by tab->load_current_preset() from Plater::on_config_change().
-				this->plater()->force_print_bed_update();
-			}
-			tab->load_current_preset();
-		}
-#endif
-    // for anker config dialog tab
-    for (AnkerTab* tab : ankerTabsList)
-        if (tab->supports_printer_technology(printer_technology)) {
-            if (tab->type() == Preset::TYPE_PRINTER) {
-                static_cast<AnkerTabPrinter*>(tab)->update_pages();
-                // Mark the plater to update print bed by tab->load_current_preset() from Plater::on_config_change().
-                this->plater()->force_print_bed_update();
-            }
-            tab->load_current_preset();
-        }
-}
 
 bool GUI_App::OnExceptionInMainLoop()
 {
@@ -3823,42 +3277,12 @@ void GUI_App::MacOpenFiles(const wxArrayString &fileNames)
         }
     }
     // Handle Double-click on your Mac to open GCode.
-    if(this->mainframe){
+    if (this->mainframe) {
         this->mainframe->Iconize(false); // Recovery window.
     }
-    if(this->plater()){
-        this->plater()->load_files(fileNames);
-    }
-    ANKER_LOG_INFO << "load_files.";
-    return;
-    
-    if (m_app_mode == EAppMode::GCodeViewer) {
-        // Running in G-code viewer.
-        // Load the first G-code into the G-code viewer.
-        // Or if no G-codes, send other files to slicer. 
-        if (! gcode_files.empty()) {
-            if (m_post_initialized)
-                this->plater()->load_gcode(gcode_files.front());
-            else
-                this->init_params->input_files = { into_u8(gcode_files.front()) };
-        }
-        if (!non_gcode_files.empty()) 
-            start_new_slicer(non_gcode_files, true);
-    } else {
-        if (! files.empty()) {
-            if (m_post_initialized) {
-                wxArrayString input_files;
-                for (size_t i = 0; i < non_gcode_files.size(); ++i)
-                    input_files.push_back(non_gcode_files[i]);
-                this->plater()->load_files(input_files);
-            } else {
-                for (const auto &f : non_gcode_files)
-                    this->init_params->input_files.emplace_back(into_u8(f));
-            }
-        }
-        for (const wxString &filename : gcode_files)
-            start_new_gcodeviewer(&filename);
-    }
+    // Files were handed to the plater to load; with no plater and no slicing, an
+    // opened file has nowhere to go. The Device tab's own import dialog is the path.
+    ANKER_LOG_INFO << "MacOpenFiles ignored, no plater to load into.";
 }
 
 void GUI_App::MacOpenURL(const wxString& url)
@@ -3877,72 +3301,9 @@ void GUI_App::MacOpenURL(const wxString& url)
 
 #endif /* __APPLE */
 
-Sidebar& GUI_App::sidebar()
-{
-    return plater_->sidebar();
-}
-// add by allen for ankerCfgDlg
-AnkerSidebarNew& GUI_App::sidebarnew()
-{
-    return plater_->sidebarnew();
-}
+// The plater accessors -- sidebar, object list/bar/layers, manipulators, model and
+// the notification manager -- are gone with the 3D view they exposed.
 
-AnkerObjectBar* GUI_App::objectbar()
-{
-    return plater_->objectbar();
-}
-
-AnkerFloatingList* GUI_App::floatinglist()
-{
-    return (plater_ != nullptr) ? plater_->floatinglist() : nullptr;
-}
-
-ObjectManipulation* GUI_App::obj_manipul()
-{
-    // If this method is called before plater_ has been initialized, return nullptr (to avoid a crash)
-    return (plater_ != nullptr) ? sidebar().obj_manipul() : nullptr;
-}
-
-AnkerObjectManipulator* GUI_App::aobj_manipul()
-{
-    // If this method is called before plater_ has been initialized, return nullptr (to avoid a crash)
-    return (plater_ != nullptr) ? plater_->aobject_manipulator() : nullptr;
-}
-
-ObjectSettings* GUI_App::obj_settings()
-{
-    return sidebar().obj_settings();
-}
-
-ObjectList* GUI_App::obj_list()
-{
-    return sidebarnew().object_list();
-}
-
-AnkerObjectLayerEditor* GUI_App::obj_layers()
-{
-    return sidebarnew().object_layer();
-}
-
-AnkerObjectLayers* GUI_App::obj_layers_()
-{
-    return  (plater_ != nullptr) ? plater_->object_layers() : nullptr;
-}
-
-Plater* GUI_App::plater()
-{
-    return plater_;
-}
-
-const Plater* GUI_App::plater() const
-{
-    return plater_;
-}
-
-Model& GUI_App::model()
-{
-    return plater_->model();
-}
 wxBookCtrlBase* GUI_App::tab_panel() const
 {
     return mainframe->m_tabpanel;
@@ -3954,15 +3315,6 @@ wxBookCtrlBase* GUI_App::ankerTabPanel() const
         mainframe->m_ankerCfgDlg->m_rightPanel : nullptr;
 }
 
-NotificationManager* GUI_App::notification_manager()
-{
-    return plater_->get_notification_manager();
-}
-
-GalleryDialog* GUI_App::gallery_dialog()
-{
-    return mainframe->gallery_dialog();
-}
 
 Downloader* GUI_App::downloader()
 {
@@ -3980,20 +3332,8 @@ OnlinePresetManager* GUI_App::onlinePresetManager()
 }
 
 // extruders count from selected printer preset
-int GUI_App::extruders_cnt() const
-{
-    const Preset& preset = preset_bundle->printers.get_selected_preset();
-    return preset.printer_technology() == ptSLA ? 1 :
-           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-}
 
 // extruders count from edited printer preset
-int GUI_App::extruders_edited_cnt() const
-{
-    const Preset& preset = preset_bundle->printers.get_edited_preset();
-    return preset.printer_technology() == ptSLA ? 1 :
-           preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-}
 
 wxString GUI_App::current_language_code_safe() const
 {
@@ -4026,80 +3366,7 @@ void GUI_App::open_web_page_localized(const std::string &http_address)
     open_browser_with_warning_dialog(http_address + "&lng=" + this->current_language_code_safe(), nullptr, false);
 }
 
-// If we are switching from the FFF-preset to the SLA, we should to control the printed objects if they have a part(s).
-// Because of we can't to print the multi-part objects with SLA technology.
-bool GUI_App::may_switch_to_SLA_preset(const wxString& caption)
-{
-    if (model_has_parameter_modifiers_in_objects(model())) {
-        show_info(nullptr,
-            _L("It's impossible to print object(s) which contains parameter modifiers with SLA technology.") + "\n\n" +
-            _L("Please check your object list before preset changing."),
-            caption);
-        return false;
-    }
-/*
-    if (model_has_multi_part_objects(model())) {
-        show_info(nullptr,
-            _L("It's impossible to print multi-part object(s) with SLA technology.") + "\n\n" +
-            _L("Please check your object list before preset changing."),
-            caption);
-        return false;
-    }
-    if (model_has_connectors(model())) {
-        show_info(nullptr,
-            _L("SLA technology doesn't support cut with connectors") + "\n\n" +
-            _L("Please check your object list before preset changing."),
-            caption);
-        return false;
-    }
-*/
-    return true;
-}
 
-bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage start_page)
-{
-    wxCHECK_MSG(mainframe != nullptr, false, "Internal error: Main frame not created / null");
-
-    // TODO: preset update
-    // if (reason == ConfigWizard::RR_USER) {
-    //     // Cancel sync before starting wizard to prevent two downloads at same time
-    //     preset_updater->cancel_sync();
-    //     preset_updater->update_index_db();
-    //     if (preset_updater->config_update(app_config->orig_version(), PresetUpdater::UpdateParams::FORCED_BEFORE_WIZARD) == PresetUpdater::R_ALL_CANCELED)
-    //         return false;
-    // }
-
-    auto wizard = new ConfigWizard(mainframe, reason == ConfigWizard::RR_DATA_EMPTY ? false : true);
-    wxSize dialogSize = wxSize(900, 700);
-    wizard->SetSize(dialogSize);
-
-    wxDisplay display;
-    wxRect screenSize = display.GetGeometry();
-    wxSize mfSize = wxGetApp().mainframe->GetClientSize();
-    wxPoint mfPos = wxGetApp().mainframe->GetPosition();
-    //wxPoint dlgPos = wxPoint(screenSize.GetWidth() / 2 - dialogSize.GetWidth() / 2,  screenSize.GetHeight() / 2 - dialogSize.GetHeight() / 2);
-    wxPoint dlgPos = wxPoint(mfPos.x + mfSize.GetWidth() / 2 - dialogSize.GetWidth() / 2, mfPos.y + mfSize.GetHeight() / 2 - dialogSize.GetHeight() / 2);
-    wizard->SetPosition(dlgPos);
-
-    const bool res = wizard->run(reason, start_page);
-
-    if (res) {
-        load_current_presets();
-
-        //save config_wizard_done flag 
-        GUI::GUI_App* gui = dynamic_cast<GUI::GUI_App*>(GUI::GUI_App::GetInstance());
-        if (gui != nullptr)
-        {
-            gui->app_config->set("config_wizard_done", "1");
-        }
-
-        // #ysFIXME - delete after testing: This part of code looks redundant. All checks are inside ConfigWizard::priv::apply_config() 
-        if (preset_bundle->printers.get_edited_preset().printer_technology() == ptSLA)
-            may_switch_to_SLA_preset(_L("Configuration is editing from ConfigWizard"));
-    }
-
-    return res;
-}
 
 void GUI_App::show_desktop_integration_dialog()
 {
@@ -4110,27 +3377,6 @@ void GUI_App::show_desktop_integration_dialog()
 #endif //__linux__
 }
 
-void GUI_App::show_downloader_registration_dialog()
-{
-    InfoDialog msg(nullptr
-        , format_wxstr(_L("Welcome to %1% version %2%."), SLIC3R_APP_NAME, SLIC3R_VERSION)
-        , format_wxstr(_L(
-            "Do you wish to register downloads from <b>Printables.com</b>"
-            "\nfor this <b>%1% %2%</b> executable?"
-            "\n\nDownloads can be registered for only 1 executable at time."
-            ), SLIC3R_APP_NAME, SLIC3R_VERSION)
-        , true, wxYES_NO);
-    if (msg.ShowModal() == wxID_YES) {
-        auto downloader_worker = new DownloaderUtils::Worker(nullptr);
-        downloader_worker->perform_register(app_config->get("url_downloader_dest"));
-#ifdef __linux__
-        if (downloader_worker->get_perform_registration_linux())
-            DesktopIntegrationDialog::perform_downloader_desktop_integration();
-#endif // __linux__
-    } else {
-        app_config->set("downloader_url_registered", "0");
-    }
-}
 
 
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG
@@ -4308,73 +3554,7 @@ void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
     }
 }
 
-bool GUI_App::config_wizard_startup()
-{
-    GUI::GUI_App* gui = dynamic_cast<GUI::GUI_App*>(GUI::GUI_App::GetInstance());
-    if (gui != nullptr && !gui->app_config->get_bool("config_wizard_done"))
-    {
-        auto ankerNet = AnkerNetInst();
-        if (ankerNet != nullptr)
-        {
-            std::map<std::string,std::string> map;
-            map.insert(std::make_pair(c_config_wizard_entrance, "enter of first config"));
-            BuryAddEvent(e_config_wizard_event, map);
-        }
 
-        ANKER_LOG_INFO << "Enter config wizard Dialog of first config";
-        run_wizard(ConfigWizard::RR_DATA_EMPTY);
-    }
-    return true;
-
-
-
-    if (!m_app_conf_exists || preset_bundle->printers.only_default_printers()) {
-        run_wizard(ConfigWizard::RR_DATA_EMPTY);
-        return true;
-    } else if (get_app_config()->legacy_datadir()) {
-        // Looks like user has legacy pre-vendorbundle data directory,
-        // explain what this is and run the wizard
-
-        MsgDataLegacy dlg;
-        dlg.ShowModal();
-
-        run_wizard(ConfigWizard::RR_DATA_LEGACY);
-        return true;
-    } 
-#ifndef __APPLE__    
-    else if (is_editor() && m_last_app_conf_lower_version && app_config->get_bool("downloader_url_registered")) {
-        show_downloader_registration_dialog();
-        return true;
-    }
-#endif
-    return false;
-}
-
-bool GUI_App::check_updates(const bool verbose)
-{	
-	PresetUpdater::UpdateResult updater_result;
-	try {
-        preset_updater->update_index_db();
-		updater_result = preset_updater->config_update(app_config->orig_version(), verbose ? PresetUpdater::UpdateParams::SHOW_TEXT_BOX : PresetUpdater::UpdateParams::SHOW_NOTIFICATION);
-		if (updater_result == PresetUpdater::R_INCOMPAT_EXIT) {
-			mainframe->Close();
-            // Applicaiton is closing.
-            return false;
-		}
-		else if (updater_result == PresetUpdater::R_INCOMPAT_CONFIGURED) {
-            m_app_conf_exists = true;
-		}
-		else if (verbose && updater_result == PresetUpdater::R_NOOP) {
-			MsgNoUpdates dlg;
-			dlg.ShowModal();
-		}
-	}
-	catch (const std::exception & ex) {
-		show_error(nullptr, ex.what());
-	}
-    // Applicaiton will continue.
-    return true;
-}
 
 bool GUI_App::open_browser_with_warning_dialog(const wxString& url, wxWindow* parent/* = nullptr*/, bool force_remember_choice /*= true*/, int flags/* = 0*/)
 {
@@ -4463,7 +3643,7 @@ void GUI_App::on_version_read(wxCommandEvent& evt)
 {
     app_config->set("version_online", into_u8(evt.GetString()));
     std::string opt = app_config->get("notify_release");
-    if (this->plater_ == nullptr || (!m_app_updater->get_triggered_by_user() && opt != "all" && opt != "release")) {
+    if (!m_app_updater->get_triggered_by_user() && opt != "all" && opt != "release") {
         BOOST_LOG_TRIVIAL(info) << "Version online: " << evt.GetString() << ". User does not wish to be notified.";
         return;
     }
@@ -4559,11 +3739,6 @@ void GUI_App::app_version_check(bool from_user)
 #if 1
 void GUI_App::start_download(std::string url)
 {
-    if (!plater_) {
-        BOOST_LOG_TRIVIAL(error) << "Could not start URL download: plater is nullptr.";
-        return; 
-    }
-
     if (boost::starts_with(url, Slic3r::WebConfig::UrlProtocol)) 
     {
         ANKER_LOG_DEBUG << "Execute the external browser launch process.";
@@ -4577,10 +3752,6 @@ void GUI_App::start_download(std::string url)
 #else
 void GUI_App::start_download(std::string url)
 {
-    if (!plater_) {
-        BOOST_LOG_TRIVIAL(error) << "Could not start URL download: plater is nullptr.";
-        return;
-    }
     //lets always init so if the download dest folder was changed, new dest is used 
     boost::filesystem::path dest_folder(app_config->get("url_downloader_dest"));
     if (dest_folder.empty() || !boost::filesystem::is_directory(dest_folder)) {

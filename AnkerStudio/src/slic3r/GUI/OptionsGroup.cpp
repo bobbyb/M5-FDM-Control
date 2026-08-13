@@ -567,8 +567,7 @@ Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index 
     //if (m_use_custom_ctrl) // fill group and category values just for options from Settings Tab
     //wxGetApp().sidebar().get_searcher().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category());
     
-    if (m_use_custom_ctrl && this->config_type() != Preset::TYPE_PRINT) // fill group and category values just for options from Settings Tab
-        wxGetApp().sidebarnew().get_searcher().add_key(opt_id, static_cast<Preset::Type>(this->config_type()), title, this->config_category());
+    // The settings searcher lived on the plater sidebar; nothing to register with.
 
 	return Option(*m_config->def()->get(opt_key), opt_id);
 }

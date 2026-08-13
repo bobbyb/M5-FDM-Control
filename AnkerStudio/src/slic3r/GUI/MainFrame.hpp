@@ -210,8 +210,6 @@ public:
     void setUrl(std::string webUrl = std::string());
 	// Called when closing the application and when switching the application language.
 	void 		shutdown(bool restart = false);
-    Plater*     plater() { return m_plater; }
-    GalleryDialog* gallery_dialog();
 
     void buryTime();
     std::string getWorkDuration();
@@ -261,7 +259,6 @@ public:
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     void updateMsgCenterItemContent(std::vector<MsgCenterItem>* pData);
     // add by allen for ankerCfgDlg
-    AnkerTabPresetComboBox* GetAnkerTabPresetCombo(const Preset::Type type);
 
 
     void loginFinishHandle();
@@ -270,7 +267,6 @@ public:
     AnkerMsgCentreDialog* m_MsgCentreDialog{ nullptr };
     bool m_isMsgCenterIsShow = false;
     bool                  m_showCommentWebView{ false };
-    Plater*               m_plater { nullptr };
     wxBookCtrlBase*       m_tabpanel { nullptr };
     // add by allen for ankerCfgDlg
     AnkerConfigDlg*       m_ankerCfgDlg{ nullptr };
@@ -278,11 +274,8 @@ public:
     bool    m_hasErrDialog = false;
     wxBookCtrlBase*       m_printTabPanel{ nullptr };
     SettingsDialog        m_settings_dialog;
-    DiffPresetDialog      diff_dialog;
-    wxWindow*             m_plater_page{ nullptr };
     PreferencesDialog*    preferences_dialog { nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
-    GalleryDialog*        m_gallery_dialog{ nullptr };
 
     AnkerFunctionPanel*        m_pFunctionPanel{ nullptr };
     AnkerCustomDialog* m_pMsgCentrePopWindow{ nullptr };

@@ -25,7 +25,6 @@
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "NotificationManager.hpp"
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
 
@@ -384,7 +383,6 @@ void PrintHostQueueDialog::append_job(const PrintHostJob &job)
     upload_names.emplace_back(job.printhost->get_host(), job.upload_data.upload_path.string());
 
     // comment by Samuel 20231106, Discarded  unused notification text
-    //wxGetApp().notification_manager()->push_upload_job_notification(job_list->GetItemCount(), (float)size_i / 1024 / 1024, job.upload_data.upload_path.string(), job.printhost->get_host());
 }
 
 void PrintHostQueueDialog::on_dpi_changed(const wxRect &suggested_rect)
@@ -464,7 +462,6 @@ void PrintHostQueueDialog::on_progress(Event &evt)
         wxVariant nm, hst;
         job_list->GetValue(nm, evt.job_id, COL_FILENAME);
         job_list->GetValue(hst, evt.job_id, COL_HOST);
-        wxGetApp().notification_manager()->set_upload_job_notification_percentage(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()), evt.progress / 100.f);
     }
 }
 
@@ -485,7 +482,6 @@ void PrintHostQueueDialog::on_error(Event &evt)
     wxVariant nm, hst;
     job_list->GetValue(nm, evt.job_id, COL_FILENAME);
     job_list->GetValue(hst, evt.job_id, COL_HOST);
-    wxGetApp().notification_manager()->upload_job_notification_show_error(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()));
 }
 
 void PrintHostQueueDialog::on_cancel(Event &evt)
@@ -500,7 +496,6 @@ void PrintHostQueueDialog::on_cancel(Event &evt)
     wxVariant nm, hst;
     job_list->GetValue(nm, evt.job_id, COL_FILENAME);
     job_list->GetValue(hst, evt.job_id, COL_HOST);
-    wxGetApp().notification_manager()->upload_job_notification_show_canceled(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()));
 }
 
 void PrintHostQueueDialog::on_info(Event& evt)
@@ -510,19 +505,13 @@ void PrintHostQueueDialog::on_info(Event& evt)
     if (evt.tag == L"resolve") {
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_HOST);
-        wxGetApp().notification_manager()->set_upload_job_notification_host(evt.job_id + 1, boost::nowide::narrow(evt.status));
     } else if (evt.tag == L"complete") {
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_ERRORMSG);
-        wxGetApp().notification_manager()->set_upload_job_notification_completed(evt.job_id + 1);
-        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, boost::nowide::narrow(evt.status));
     } else if(evt.tag == L"complete_with_warning"){
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_ERRORMSG);
-        wxGetApp().notification_manager()->set_upload_job_notification_completed_with_warning(evt.job_id + 1);
-        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, boost::nowide::narrow(evt.status));
     } else if (evt.tag == L"set_complete_off") {
-        wxGetApp().notification_manager()->set_upload_job_notification_comp_on_100(evt.job_id + 1, false);
     }
 }
 
