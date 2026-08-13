@@ -900,8 +900,17 @@ void MainFrame::initTabPanel() {
         // the plater). Slice is gone.
         if (iSelectedPage == 1) {
             // Device Details follows whichever printer the Device tab has selected.
-            if (m_pDeviceDetails && m_pDeviceWidget)
-                m_pDeviceDetails->setCurrentDeviceSn(m_pDeviceWidget->currentDeviceSn());
+            if (m_pDeviceDetails) {
+                // wxSimplebook does not reliably send wxEVT_SHOW to its pages, so
+                // re-read the device list here too -- it is populated asynchronously.
+                m_pDeviceDetails->refreshPrinterList();
+                // Seed only. The Device tab's "current" serial is derived from its
+                // widget list and can disagree with what is highlighted there, so
+                // forcing it on every tab switch silently retargeted the controls at
+                // a printer the user had not chosen.
+                if (m_pDeviceWidget)
+                    m_pDeviceDetails->seedSelection(m_pDeviceWidget->currentDeviceSn());
+            }
         }
         else if (iSelectedPage == 0) {
             m_currentTabMode = TabMode::TAB_DEVICE;
@@ -2341,8 +2350,9 @@ void MainFrame::InitAnkerDevice()
     Bind(wxCUSTOMEVT_SWITCH_TO_PRINT_PAGE, [this](wxCommandEvent& event) {
         wxStringClientData* pData = static_cast<wxStringClientData*>(event.GetClientObject());
         if (pData) {
-            int pageCount = m_printTabPanel->GetPageCount();
-            m_printTabPanel->ChangeSelection(pageCount - 1);
+            // type_devcie, not pageCount-1: that meant "the Device page" only
+            // while Device happened to be the last page.
+            m_printTabPanel->ChangeSelection(type_devcie);
             std::string sn = pData->GetData().ToStdString();
             m_pDeviceWidget->switchDevicePage(sn);
             wxCommandEvent evt = wxCommandEvent(wxCUSTOMEVT_ON_TAB_CHANGE);
@@ -2362,10 +2372,9 @@ void MainFrame::InitAnkerDevice()
     CallAfter([this]() {
         if (!m_printTabPanel)
             return;
-        int pageCount = m_printTabPanel->GetPageCount();
-        if (pageCount <= 0)
+        if (m_printTabPanel->GetPageCount() <= type_devcie)
             return;
-        m_printTabPanel->SetSelection(pageCount - 1);
+        m_printTabPanel->SetSelection(type_devcie);
         setTabMode(TAB_DEVICE);
         wxCommandEvent evt(wxCUSTOMEVT_ON_TAB_CHANGE);
         evt.SetId(type_devcie);
@@ -3149,6 +3158,21 @@ void MainFrame::init_menubar_as_editor()
     // Calibration menu removed: every calibration loaded its test model into
     // the plater (GUI/Calibration/FlowCalibration.cpp), so it went with slicing.
 
+    // Edit menu. The slicing-era Edit menu went away with the plater, but on macOS
+    // the standard Cmd-X/C/V/A key equivalents are delivered *through the menu bar* --
+    // without these items the clipboard is dead in every text field in the app,
+    // including the Device Details G-code box. These use the stock wx ids, which wx
+    // routes to whichever control has focus, so no handlers are needed here.
+    auto editMenu = new wxMenu();
+    editMenu->Append(wxID_UNDO,      _L("Undo") + "\tCtrl+Z");
+    editMenu->Append(wxID_REDO,      _L("Redo") + "\tShift+Ctrl+Z");
+    editMenu->AppendSeparator();
+    editMenu->Append(wxID_CUT,       _L("Cut") + "\tCtrl+X");
+    editMenu->Append(wxID_COPY,      _L("Copy") + "\tCtrl+C");
+    editMenu->Append(wxID_PASTE,     _L("Paste") + "\tCtrl+V");
+    editMenu->AppendSeparator();
+    editMenu->Append(wxID_SELECTALL, _L("Select All") + "\tCtrl+A");
+
     // Help menu
     auto helpMenu = generate_help_menu();
 
@@ -3158,6 +3182,7 @@ void MainFrame::init_menubar_as_editor()
     m_menubar = new wxMenuBar();
     m_menubar->SetFont(this->normal_font());
     m_menubar->Append(fileMenu, _L("common_menu_title_file"));
+    m_menubar->Append(editMenu, _L("Edit"));
     if(settingsMenu) m_menubar->Append(settingsMenu, _L("common_menu_title_settings"));
     // View and Calibration are gone. Note the Calibration append was not guarded
     // on its own menu, so leaving it would have passed a null wxMenu to Append.
