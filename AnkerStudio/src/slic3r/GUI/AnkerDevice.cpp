@@ -246,6 +246,8 @@ void AnkerDevice::showNoDevice()
 
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		iter->Hide();
 	}	
 
@@ -272,6 +274,8 @@ void AnkerDevice::showDeviceList(bool freshAll)
 	bool lastIndexIsValid = false;
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -342,6 +346,8 @@ void AnkerDevice::showDeviceList(bool freshAll)
 
 	if (freshAll) {
 		for (auto iter : m_deviceWidgetList) {
+			if (!iter)   // entries can go null while a device list refresh rebuilds this
+				continue;
 			if (!iter || !m_pNavBarWidget) {
 				continue;
 			}
@@ -374,6 +380,8 @@ void AnkerDevice::showOfflineDevice()
 
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		iter->Hide();
 	}
 
@@ -396,6 +404,8 @@ void AnkerDevice::updateDeviceStatus(const std::string& sn, ::aknmt_command_type
 {	
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -413,6 +423,8 @@ void AnkerDevice::updateZoffsetValue(const std::string& sn)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -433,6 +445,8 @@ void AnkerDevice::updateFileTransferStatus(std::string sn, int progress, FileTra
 		return;
 
 	for (auto iter : m_deviceWidgetList) {
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -483,6 +497,8 @@ void AnkerDevice::showMsgLV1Dialog(const NetworkMsg& msg)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		if (iter->getCurrentDeviceId() == msg.sn) {
 			iter->showMsgFrame(msg);
 		}
@@ -498,6 +514,8 @@ void AnkerDevice::displayVideoFrame(std::string& sn, const unsigned char* imgDat
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -516,6 +534,8 @@ void AnkerDevice::onP2pvideoStreamSessionInit(const std::string& sn)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -533,6 +553,8 @@ void AnkerDevice::onRecvVideoStreamClosing(const std::string& sn)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -550,6 +572,8 @@ void AnkerDevice::onP2pvideoStreamSessionClosed(const std::string& sn)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -567,6 +591,8 @@ void AnkerDevice::onRcvP2pVideoStreamCtrlAbnomal(const std::string& sn)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -584,6 +610,8 @@ void AnkerDevice::onRecvCameraLightStateNotify(const std::string& sn, bool onOff
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -601,6 +629,8 @@ void AnkerDevice::onRecVideoModeNotify(const std::string& sn, int mod)
 {
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -661,6 +691,8 @@ void AnkerDevice::showDevice(const std::string& snId)
 
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		wxStringClientData* pIterSnId = static_cast<wxStringClientData*>(iter->GetClientObject());
 		std::string widgetId = std::string();
 
@@ -716,6 +748,8 @@ void AnkerDevice::clearWidget()
 
 	for (auto iter : m_deviceWidgetList)
 	{
+		if (!iter)   // entries can go null while a device list refresh rebuilds this
+			continue;
 		delete iter;
 	}
 
