@@ -4,6 +4,7 @@
 #include "Interface Files/DeviceObjectBase.h"
 
 #include <chrono>
+#include <cstdio>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -380,8 +381,14 @@ private:
     // Builds {"commandType":<cmd>,<fields>} and hands it to the MQTT command sender.
     void sendCommand(int cmd, const std::string& fields)
     {
-        if (!m_sendCommand)
+        if (!m_sendCommand) {
+            // Never fail silently here: a dropped command is indistinguishable from a
+            // printer that ignored it, and this early-return sits under every control
+            // in the UI.
+            std::fprintf(stderr, "[DeviceObject] commandType %d dropped, no command sender for sn=%s\n",
+                cmd, sn.c_str());
             return;
+        }
         std::string json = "{\"commandType\":" + std::to_string(cmd);
         if (!fields.empty())
             json += "," + fields;
