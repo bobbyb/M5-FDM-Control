@@ -56,7 +56,13 @@ public:
 
 private:
     bool send(const std::string& gcode);
+    // Resolves the device and publishes one line. Static and sn-keyed so it is safe
+    // to call from the sequencing thread without touching this object.
+    static bool sendOne(const std::string& sn, const std::string& gcode);
     static const char* axisLetter(Axis a);
+    // Z is a leadscrew and far slower than the X/Y gantry; one feedrate for all
+    // three axes is wrong for it. Tune here.
+    static int feedrateFor(Axis a);
 
     std::string m_sn;
 };
