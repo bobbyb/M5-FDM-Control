@@ -1,3 +1,50 @@
+### M5 FDM Control V0.2.0 (pre-release)
+
+**Not finished — a test build.** Published so it can be run on other machines, not as a
+finished release.
+
+This is where M5 FDM Control stops being a slicer. The slicing subsystem is removed from
+the build entirely: `Plater`, the OpenGL stack, all 20 gizmos, the object list and
+manipulation panels, the preset tabs and configuration wizard, the G-code preview,
+calibration, and the background slicing process — around 240 source files. The binary
+drops from 90 MB to 75 MB.
+
+What it is now is a printer control application. Slice elsewhere, then use this to send
+the job and drive the machine.
+
+**New: the Device Details tab.** Manual control of the printer:
+
+- X/Y/Z jog with a 1 / 10 / 20 / 50 mm step and per-axis homing
+- Auto-Level (`G29`), behind a confirmation that names the printer it will occupy for
+  ten minutes
+- A raw G-code box, unfiltered, with a per-printer history of what was sent
+- A full printer selector, so the controls always show which machine they will drive
+
+**Fixes**
+
+- Movement commands now reach the printer. A jog is three MQTT messages (`G91`, the move,
+  `G90`) and the transport publishes at QoS 0 — fire-and-forget, no ack — so sending them
+  in one burst could silently lose one. They are now spaced.
+- Z jogs at a Z feedrate instead of the gantry's, which the firmware would have clamped.
+- Commands went to whichever printer the Device tab happened to hold last, not the one
+  selected. An auto-level meant for one machine ran on another.
+- The Edit menu is back. macOS delivers Cmd-X/C/V/A through the menu bar, so removing it
+  had killed the clipboard in every text field in the app.
+- A null device widget could crash the video decoder thread during a device-list refresh.
+- The window no longer reopens at 908x604 after an unclean exit.
+
+**Known rough edges**
+
+- The Device Details settings rows below Auto-Level (Accessories, Wi-Fi, AI Settings,
+  Share Printer, Timelapses, About Device) are placeholders and greyed out.
+- Debug tracing is compiled in and prints to stderr on every button press.
+- Extrude/retract over the vendor G-code channel are believed correct but have not been
+  confirmed on a machine.
+- This build shares its data directory with M5 FDM Studio, so running either writes
+  settings the other reads, window geometry included.
+
+---
+
 ### M5 FDM Control V0.1.0
 
 First release of this fork. A native Apple Silicon (arm64) build of eufyMake Studio for

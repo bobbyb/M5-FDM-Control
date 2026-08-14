@@ -23,7 +23,7 @@ set -euo pipefail
 APP_NAME="M5 FDM Control"
 FULL_NAME="M5 FDM Control for AnkerMake M5 M5C printers"   # descriptive/marketing name
 BUNDLE_ID="com.bobbyb.m5-fdm-control"               # must NOT be com.anker.*
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 # Your "Developer ID Application" identity, e.g.:
 #   DEV_ID="Developer ID Application: Jane Doe (AB12CD34EF)"
