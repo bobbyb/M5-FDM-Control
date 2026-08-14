@@ -3,112 +3,127 @@
 
 ## Overview
 
-A slimmed-down fork of [M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaSlicer-Release-ARM),
-the native Apple Silicon build of **eufyMake Studio** for AnkerMake M5 and M5C printers.
+A **printer control application** for AnkerMake M5 and M5C printers, native to Apple
+Silicon. It monitors your printers, streams their cameras, drives the gantry by hand, and
+sends pre-sliced G-code jobs.
 
-Forked from `m5-fdm-studio-v0.1.0`. **No functional changes** — the slicing engine,
-profiles, GUI, and networking layers behave exactly as in the parent. The differences are
-that files the macOS arm64 build never uses have been removed, and the app is renamed.
+**It does not slice.** The slicing engine, the 3D view, the object list and the entire
+preset system have been removed. Slice elsewhere — eufyMake Studio, OrcaSlicer, PrusaSlicer
+— and use this to send the result and to control the machine.
 
-### Why this fork exists
+It began as a size-trimmed fork of
+[M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaSlicer-Release-ARM), the native
+Apple Silicon build of eufyMake Studio, and has since had the slicer taken out of it.
 
-Two reasons, in order:
+## What it does
 
-1. **It is the base for a compact-UI variant.** That work has not started; no GUI code has
-   been touched yet.
-2. **It is much smaller.** The parent carries Intel dylibs, Windows runtime DLLs, unused
-   font faces, and gettext `.po` sources — none of which reach a macOS arm64 build.
+- **Device tab** — status, temperatures, print progress, Z-offset, extrude/retract, and
+  live camera streaming over the local network or remotely.
+- **Device Details tab** — manual control:
+  - X/Y/Z jog with a selectable step (1 / 10 / 20 / 50 mm) and per-axis homing
+  - Auto-Level (`G29`), behind a confirmation that names the printer it will tie up
+  - a raw G-code box, unfiltered, with a per-printer history of what you sent
+- **Start Printing** — `File > Start Printing` opens a G-code file and sends it to a
+  printer. It reads print time, filament use and thumbnails from the file; see
+  [docs/GCODE_FLAVOURS.md](docs/GCODE_FLAVOURS.md) for which slicers' output is understood
+  (eufyMake and PrusaSlicer fully, OrcaSlicer partially).
+- **No proprietary network plugin.** The closed-source `libAnkerNet` has been replaced with
+  a native implementation, so there is no plugin download prompt. The MQTT broker's
+  certificate is pinned rather than verification being skipped.
 
-### Relationship to M5 FDM Studio
+Runs on **macOS 27**, which drops Intel app support — fully native arm64, no Rosetta.
 
-M5 FDM Control installs alongside its parent rather than over it: it has its own app name
-and its own bundle identifier (`com.bobbyb.m5-fdm-control`).
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for what works and what is known not to.
 
-It deliberately **shares the parent's data directory**. `SLIC3R_APP_KEY` is still
-`eufyMake Studio`, so presets, configuration, and the login cache carry over from an
-existing eufyMake Studio or M5 FDM Studio install. That key is also the name of the
-translation catalogs (`eufyMake Studio.mo`), so changing it would orphan settings *and*
-silently disable every translation.
+## What was removed, and why
 
-### What was removed
+The slicing subsystem is gone from the build entirely — not merely hidden. That is roughly
+240 source entries: `Plater`, the OpenGL stack, all 20 gizmos, the object list/bar/
+manipulation panels, the preset tabs and configuration wizard, the G-code preview,
+calibration, and the background slicing process.
 
-| Removed | Size | Why it is safe |
-|---|---|---|
-| `AnkerStudio/deps/bin/mac/x86/` | 57 MB | 28 dylibs, all `Mach-O x86_64`. This fork builds `-DCMAKE_OSX_ARCHITECTURES=arm64` against `deps/deps_build/destdir`, never these. |
-| `AnkerStudio/pack/windows/` | 22 MB | Windows runtime (`opengl32.dll`, WebView2, CRT). macOS-only fork. |
-| `AnkerStudio/deps/bin/win/` | 1 MB | `PPCS_API.dll`, `paho-mqtt3cs.dll` — Windows builds of the P2P/MQTT libs. |
-| 4 HarmonyOS Sans SC weights | 31 MB | Thin, Light, Medium, Black. Zero references in the source tree; only Bold and Regular are loaded, by `AnkerFont.cpp` and `Widgets/Label.cpp`. |
-| `NotoSansCJK-Regular.ttc` | 19 MB | No code reference. macOS supplies system CJK coverage (PingFang, Hiragino), and HarmonyOS Sans SC covers Simplified Chinese. |
-| `*.po` / `*.pot` in `localization/` | 27 MB | gettext **sources**. Only the compiled `.mo` catalogs are read at runtime, via `wxFileTranslationsLoader`. |
+The binary is **75 MB**, down from 90 MB before the removal. Earlier size trimming (Intel
+dylibs, Windows runtime, unused font weights, gettext `.po` sources) had already taken the
+source tree from 254 MB to 98 MB.
 
-**Total: 157 MB removed, 109 files. Source tree 254 MB → 98 MB.**
+Deliberately kept:
 
-### What was deliberately kept
+- **All 21 language catalogs.** Only the compiled `.mo` files are read at runtime, so
+  dropping the `.po` sources removed no language.
+- **`AnkerTaskPanel`, `AnkerSliceCommentDialog`, `Utils/WxFontUtils`** — these read as
+  slicing code but are not; the first two are Device-tab code and the third is used by the
+  dialogs that remain.
 
-- **All 21 language catalogs.** Dropping `.po` sources removes no language — every `.mo`
-  is intact, so the app is exactly as localized as the parent.
-- **`resources/calib/` (11 MB of STLs).** These look like dead weight but every one is
-  loaded by `GUI/Calibration/FlowCalibration.cpp`. Removing them breaks the calibration
-  features.
-- **`HarmonyOS_Sans_SC_{Bold,Regular}.ttf`, `NotoSans-Regular.ttf`.** All three are loaded
-  by path at runtime.
+Everything removed is still in the parent repo at tag `m5-fdm-studio-v0.1.0`.
 
-### Restoring anything
+## Installing alongside M5 FDM Studio
 
-Every removed file is still in the parent repo at tag `m5-fdm-studio-v0.1.0`:
+M5 FDM Control has its own app name and bundle identifier
+(`com.bobbyb.m5-fdm-control`), so it installs *beside* its parent rather than over it.
 
-```bash
-git --git-dir=../eufyMake-PrusaSlicer-Release-ARM/.git \
-    show m5-fdm-studio-v0.1.0:AnkerStudio/resources/fonts/NotoSansCJK-Regular.ttc \
-    > AnkerStudio/resources/fonts/NotoSansCJK-Regular.ttc
-```
+**It shares the parent's data directory.** `SLIC3R_APP_KEY` is still `eufyMake Studio`, so
+configuration and the login cache carry over from an existing eufyMake Studio or M5 FDM
+Studio install. That key is also the basename of the translation catalogs
+(`eufyMake Studio.mo`), so changing it would orphan settings *and* silently disable every
+translation.
 
-## Known wrinkles
-
-- `.gitignore` is inherited verbatim and contains `*.txt` and `*.ttf`, which match every
-  `CMakeLists.txt` and every bundled font. They are tracked here because the initial commit
-  force-added them; a plain `git add` will **not** pick up a new `CMakeLists.txt`. Use
-  `git add -f`, or narrow those patterns.
-- Renaming the app changed the msgid of every user-facing string containing the app name,
-  so those specific strings now fall back to English in translated builds. This is
-  inherited, not new — the parent already broke the same strings when it renamed away from
-  `eufyMake Studio`. Regenerating the catalogs would fix it, and needs the `.po` sources
-  from the parent repo.
-
-## Features
-
-- **Runs on macOS 27**, which drops Intel app support — fully native arm64, no Rosetta;
-- Basic slicing features & GCode viewer;
-- Remote control & monitoring;
-- Live camera streaming, on the local network and remotely;
-- No proprietary network plugin, and no plugin download prompt;
-
-See [RELEASE_NOTES.md](RELEASE_NOTES.md) for what works, and for the list of things that
-are known not to work.
+The practical consequence: **running either app writes settings the other reads**, window
+geometry included. If you use both, expect them to tread on each other.
 
 ## How to compile
 
-- macOS on Apple Silicon, [Compile Guide](AnkerStudio/doc/MacOs_build.md)
+macOS on Apple Silicon — [Compile Guide](AnkerStudio/doc/MacOs_build.md).
 
-This fork targets Apple Silicon only. For Windows or Intel builds, use the
+Apple Silicon only. For Windows or Intel builds, use the
 [upstream project](https://github.com/eufymake/eufyMake-PrusaSlicer-Release).
+
+Two things that will bite you:
+
+- The app loads **two** build products: `Contents/MacOS/eufyStudio` and
+  `Contents/Frameworks/libAnkerNet.dylib`. Everything under `src/slic3r/GUI/AnkerNetModule/`
+  compiles into the dylib. Use `make_app.sh` to bundle; copying just the executable leaves
+  the app running stale networking code with no error.
+- In a Release build the loader does not use the bundled dylib directly. It loads a cached
+  copy from `~/Library/Application Support/eufyMake Studio Profile/OnlineAnkerNet/Current/`,
+  and only refreshes it when the cached one fails to load. Changing net code and seeing no
+  effect almost always means that cache is stale.
+- `.gitignore` is inherited verbatim and contains `*.txt` and `*.ttf`, which match every
+  `CMakeLists.txt` and bundled font. They are tracked only because the initial commit
+  force-added them; a plain `git add` will **not** pick up a new `CMakeLists.txt`.
+
+## Status
+
+Early. The jog controls, Auto-Level, the G-code box and the print path have been exercised
+on real hardware, but this is a young fork and the slicing removal touched a great deal.
+
+Known rough edges:
+
+- The Device Details settings rows below Auto-Level (Accessories, Wi-Fi, AI Settings,
+  Share Printer, Timelapses, About Device) are **placeholders** and are greyed out.
+- Debug tracing is still compiled in and prints to stderr on every button press.
+- Extrude/retract over the vendor G-code channel are believed correct but have not been
+  confirmed on a machine.
 
 ## Lineage
 
 This is an unofficial community fork. It is not affiliated with, endorsed by, or supported
 by Anker or eufyMake.
 
-Compact fork of [M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaSlicer-Release-ARM),
-which forks [eufyMake Studio](https://github.com/eufymake/eufyMake-PrusaSlicer-Release)
-(tracking upstream v1.5.26), which is based on
+Fork of [M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaSlicer-Release-ARM), which
+forks [eufyMake Studio](https://github.com/eufymake/eufyMake-PrusaSlicer-Release) (tracking
+upstream v1.5.26), which is based on
 [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research, which is from
 [Slic3r](https://github.com/Slic3r/Slic3r) by Alessandro Ranellucci and the RepRap
 community.
 
+Protocol details for the AnkerMake MQTT and P2P layers were informed by
+[Ankermgmt/ankermake-m5-protocol](https://github.com/Ankermgmt/ankermake-m5-protocol).
+
 ## License
 
-M5 FDM Control is licensed under the GNU Affero General Public License, version 3. It is
-based on eufyMake Studio, which is based on PrusaSlicer by PrusaResearch.
+M5 FDM Control is licensed under the GNU Affero General Public License, version 3 — see
+[LICENSE](LICENSE). It is based on eufyMake Studio, which is based on PrusaSlicer by Prusa
+Research.
 
 PrusaSlicer is licensed under the GNU Affero General Public License, version 3. PrusaSlicer is owned by Prusa Research. PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci.
 
