@@ -8,8 +8,8 @@ Silicon. It monitors your printers, streams their cameras, drives the gantry by 
 sends pre-sliced G-code jobs.
 
 **It does not slice.** The slicing engine, the 3D view, the object list and the entire
-preset system have been removed. Slice elsewhere — eufyMake Studio, OrcaSlicer, PrusaSlicer
-— and use this to send the result and to control the machine.
+preset system have been removed. Slice elsewhere, then use this to send the result and to
+control the machine.
 
 It began as a size-trimmed fork of
 [M5 FDM Studio](https://github.com/bobbyb/eufyMake-PrusaSlicer-Release-ARM), the native
@@ -25,8 +25,7 @@ Apple Silicon build of eufyMake Studio, and has since had the slicer taken out o
   - a raw G-code box, unfiltered, with a per-printer history of what you sent
 - **Start Printing** — `File > Start Printing` opens a G-code file and sends it to a
   printer. It reads print time, filament use and thumbnails from the file; see
-  [docs/GCODE_FLAVOURS.md](docs/GCODE_FLAVOURS.md) for which slicers' output is understood
-  (eufyMake and PrusaSlicer fully, OrcaSlicer partially).
+  [docs/GCODE_FLAVOURS.md](docs/GCODE_FLAVOURS.md) for which slicers' output is understood.
 - **No proprietary network plugin.** The closed-source `libAnkerNet` has been replaced with
   a native implementation, so there is no plugin download prompt. The MQTT broker's
   certificate is pinned rather than verification being skipped.
